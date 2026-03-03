@@ -66,42 +66,44 @@ ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 \
 COPY docker-customize/openclaw-workspace/ /defaults/openclaw-workspace/
 COPY docker-customize/openclaw-config-bridge.py /usr/local/bin/openclaw-config-bridge.py
 
-# 创建 s6-overlay 的 oneshot 初始化任务
+# -----------------------------------------------------------------------------
+# 第三步: 注册 s6-overlay 服务 (OpenClaw 初始化与 Gateway)
+# -----------------------------------------------------------------------------
+
+# 1. 复制配置桥接脚本并创建运行脚本
+RUN printf '#!/usr/bin/with-contenv bash\n\
+    if [ ! -d "/config/.openclaw/workspace" ]; then\n\
+    mkdir -p "/config/.openclaw/workspace"\n\
+    cp -r /defaults/openclaw-workspace/* "/config/.openclaw/workspace/"\n\
+    fi\n\
+    python3 /usr/local/bin/openclaw-config-bridge.py\n\
+    chown -R abc:abc "/config/.openclaw" || true\n' > /usr/local/bin/openclaw-init && \
+    chmod +x /usr/local/bin/openclaw-init && \
+    \
+    printf '#!/usr/bin/with-contenv bash\n\
+    cd /config/.openclaw\n\
+    exec gosu abc openclaw gateway --dev --bind lan --verbose\n' > /usr/local/bin/openclaw-run && \
+    chmod +x /usr/local/bin/openclaw-run
+
+# 2. 注册初始化服务 (oneshot: init-openclaw)
 RUN mkdir -p /etc/s6-overlay/s6-rc.d/init-openclaw && \
-    printf 'oneshot\n' > /etc/s6-overlay/s6-rc.d/init-openclaw/type && \
-    printf '%s\n' \
-    '#!/bin/bash' \
-    'if [ ! -d "/config/.openclaw/workspace" ]; then' \
-    '    mkdir -p "/config/.openclaw/workspace"' \
-    '    cp -r /defaults/openclaw-workspace/* "/config/.openclaw/workspace/"' \
-    'fi' \
-    'python3 /usr/local/bin/openclaw-config-bridge.py' \
-    'chown -R abc:abc "/config/.openclaw" || true' \
-    > /etc/s6-overlay/s6-rc.d/init-openclaw/up && \
-    chmod +x /etc/s6-overlay/s6-rc.d/init-openclaw/up && \
+    echo "oneshot" > /etc/s6-overlay/s6-rc.d/init-openclaw/type && \
+    echo "/usr/local/bin/openclaw-init" > /etc/s6-overlay/s6-rc.d/init-openclaw/up && \
     mkdir -p /etc/s6-overlay/s6-rc.d/user/contents.d && \
     touch /etc/s6-overlay/s6-rc.d/user/contents.d/init-openclaw
 
-# -----------------------------------------------------------------------------
-# 第四步: 重新定义 openclaw-gateway 长期运行服务
-# -----------------------------------------------------------------------------
-RUN mkdir -p /etc/s6-overlay/s6-rc.d/openclaw-gateway && \
-    printf 'longrun\n' > /etc/s6-overlay/s6-rc.d/openclaw-gateway/type && \
-    mkdir -p /etc/s6-overlay/s6-rc.d/openclaw-gateway/dependencies.d && \
-    touch /etc/s6-overlay/s6-rc.d/openclaw-gateway/dependencies.d/init-openclaw && \
-    printf '%s\n' \
-    '#!/usr/bin/with-contenv bash' \
-    'cd /config/.openclaw' \
-    'exec gosu abc openclaw gateway --dev --bind lan --verbose' \
-    > /etc/s6-overlay/s6-rc.d/openclaw-gateway/run && \
-    chmod +x /etc/s6-overlay/s6-rc.d/openclaw-gateway/run
-
-RUN mkdir -p /etc/s6-overlay/s6-rc.d/user2/contents.d && \
-    touch /etc/s6-overlay/s6-rc.d/user2/contents.d/openclaw-gateway
+# 3. 注册 Gateway 服务 (longrun: svc-openclaw)
+RUN mkdir -p /etc/s6-overlay/s6-rc.d/svc-openclaw && \
+    echo "longrun" > /etc/s6-overlay/s6-rc.d/svc-openclaw/type && \
+    echo "/usr/local/bin/openclaw-run" > /etc/s6-overlay/s6-rc.d/svc-openclaw/run && \
+    mkdir -p /etc/s6-overlay/s6-rc.d/svc-openclaw/dependencies.d && \
+    touch /etc/s6-overlay/s6-rc.d/svc-openclaw/dependencies.d/init-openclaw && \
+    touch /etc/s6-overlay/s6-rc.d/user/contents.d/svc-openclaw
 
 # -----------------------------------------------------------------------------
 # 元数据标签
 # -----------------------------------------------------------------------------
 LABEL maintainer="zhangjun" \
-    description="zinoClaw Pro - 高效瘦身版 (v1.4.0)" \
-    version="1.4.0"
+    description="zinoClaw Pro - 稳定性增强版 (v1.5.0)" \
+    version="1.5.0"
+
