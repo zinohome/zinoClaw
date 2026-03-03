@@ -20,32 +20,43 @@
 FROM harbor.naivehero.top:8443/baseimages/linuxserver/webtop:zino-kde-custom
 
 # -----------------------------------------------------------------------------
-# 第一步: 安装系统依赖 (含浏览器自动化所需环境与字体)
+# 第一步 & 第二步: 深度整合与瘦身安装 (合并 Layer 以减小体积)
 # -----------------------------------------------------------------------------
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-    # 基础工具
     ca-certificates gnupg curl git jq python3 python3-pip gosu \
-    # 浏览器自动化 (Playwright/Puppeteer) 依赖
     chromium fonts-liberation fonts-noto-cjk fonts-noto-color-emoji \
     libnss3 libatk-bridge2.0-0 libgtk-3-0 && \
-    # 添加 NodeSource Node.js 22 apt 仓库
+    # 1. 注入 Node.js 22 源并安装
     curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
     apt-get install -y --no-install-recommends nodejs && \
-    # 安装 bun 和 qmd (高性能运行时与记忆插件)
+    # 2. 全局安装 OpenClaw 及其核心工具
+    # 注意: 我们跳过 Playwright 的二进制下载 (使用系统 Chromium)，移除不必要的本地依赖
+    npm install -g npm@latest && \
+    npm install -g --production \
+    openclaw@latest \
+    opencode-ai@latest \
+    playwright@latest \
+    playwright-extra \
+    puppeteer-extra-plugin-stealth \
+    @steipete/bird && \
+    # 3. 安装 Bun 和 QMD
     curl -fsSL https://bun.sh/install | BUN_INSTALL=/usr/local bash && \
     /usr/local/bin/bun install -g @tobilu/qmd && \
-    # 清理缓存
+    # 4. 【关键瘦身】清理所有包管理器缓存、临时文件和浏览器冗余包
+    npm cache clean --force && \
+    apt-get purge -y --auto-remove && \
     apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+    rm -rf /var/lib/apt/lists/* \
+    /root/.npm \
+    /root/.cache \
+    /tmp/* \
+    /usr/share/doc \
+    /usr/share/man
 
-# -----------------------------------------------------------------------------
-# 第二步: 安装 OpenClaw 及其增强工具包 (Playwright, opencode-ai 等)
-# -----------------------------------------------------------------------------
-RUN npm install -g openclaw@latest opencode-ai@latest \
-    playwright playwright-extra puppeteer-extra-plugin-stealth @steipete/bird && \
-    # 安装 Playwright 浏览器二进制 (Chromium 已经在系统层安装，这里确保驱动匹配)
-    npx playwright install chromium
+# 💡 提示: 环境变量告知 Playwright 使用系统路径，不要再去下载浏览器
+ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 \
+    PLAYWRIGHT_BROWSERS_PATH=/usr/bin/chromium
 
 # -----------------------------------------------------------------------------
 # 第三步: 准备自动化部署脚本与工作区模板
@@ -56,25 +67,18 @@ COPY docker-customize/openclaw-workspace/ /defaults/openclaw-workspace/
 COPY docker-customize/openclaw-config-bridge.py /usr/local/bin/openclaw-config-bridge.py
 
 # 创建 s6-overlay 的 oneshot 初始化任务
-# 负责: 1. 部署默认 workspace; 2. 根据环境变量同步 openclaw.json
 RUN mkdir -p /etc/s6-overlay/s6-rc.d/init-openclaw && \
     printf 'oneshot\n' > /etc/s6-overlay/s6-rc.d/init-openclaw/type && \
     printf '%s\n' \
     '#!/bin/bash' \
-    '# 1. 部署默认 workspace (如果不存在)' \
     'if [ ! -d "/config/.openclaw/workspace" ]; then' \
-    '    echo "[Init] Deploying default OpenClaw workspace..."' \
     '    mkdir -p "/config/.openclaw/workspace"' \
     '    cp -r /defaults/openclaw-workspace/* "/config/.openclaw/workspace/"' \
     'fi' \
-    '# 2. 执行配置对桥接 (ENV -> JSON)' \
-    'echo "[Init] Synchronizing configuration from environment variables..."' \
     'python3 /usr/local/bin/openclaw-config-bridge.py' \
-    '# 3. 权限修正' \
     'chown -R abc:abc "/config/.openclaw" || true' \
     > /etc/s6-overlay/s6-rc.d/init-openclaw/up && \
     chmod +x /etc/s6-overlay/s6-rc.d/init-openclaw/up && \
-    # 注册到启动组
     mkdir -p /etc/s6-overlay/s6-rc.d/user/contents.d && \
     touch /etc/s6-overlay/s6-rc.d/user/contents.d/init-openclaw
 
@@ -83,20 +87,15 @@ RUN mkdir -p /etc/s6-overlay/s6-rc.d/init-openclaw && \
 # -----------------------------------------------------------------------------
 RUN mkdir -p /etc/s6-overlay/s6-rc.d/openclaw-gateway && \
     printf 'longrun\n' > /etc/s6-overlay/s6-rc.d/openclaw-gateway/type && \
-    # 依赖初始化任务
     mkdir -p /etc/s6-overlay/s6-rc.d/openclaw-gateway/dependencies.d && \
     touch /etc/s6-overlay/s6-rc.d/openclaw-gateway/dependencies.d/init-openclaw && \
-    # 启动脚本
     printf '%s\n' \
     '#!/usr/bin/with-contenv bash' \
-    'echo "[Service] Starting OpenClaw Gateway..."' \
-    '# 切换到工作目录，使用配置好的 JSON 启动，--dev 模式会自动加载 workspace' \
     'cd /config/.openclaw' \
     'exec gosu abc openclaw gateway --dev --bind lan --verbose' \
     > /etc/s6-overlay/s6-rc.d/openclaw-gateway/run && \
     chmod +x /etc/s6-overlay/s6-rc.d/openclaw-gateway/run
 
-# 激活服务
 RUN mkdir -p /etc/s6-overlay/s6-rc.d/user2/contents.d && \
     touch /etc/s6-overlay/s6-rc.d/user2/contents.d/openclaw-gateway
 
@@ -104,5 +103,5 @@ RUN mkdir -p /etc/s6-overlay/s6-rc.d/user2/contents.d && \
 # 元数据标签
 # -----------------------------------------------------------------------------
 LABEL maintainer="zhangjun" \
-    description="zinoClaw Pro - 开箱即用的自动化 OpenClaw 镜像 (纯净版)" \
-    version="1.3.0"
+    description="zinoClaw Pro - 高效瘦身版 (v1.4.0)" \
+    version="1.4.0"
