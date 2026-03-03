@@ -1,0 +1,96 @@
+# =============================================================================
+# OpenClaw Gateway 服务层镜像
+# 基础镜像: 已构建好的 KDE 定制底包
+# 功能:
+#   1. 安装 Node.js 22 (openclaw 硬性要求)
+#   2. 全局安装 openclaw
+#   3. 注册 openclaw-gateway 为 s6-overlay 持久服务（随容器启动自动运行）
+#
+# 重要说明（来自 linuxserver 官方文档 docs.linuxserver.io）:
+#   - /custom-cont-init.d 和 /custom-services.d 是"运行时挂载卷"机制，
+#     必须通过 docker volume 挂载进来，在 Dockerfile 里创建不会被 s6 扫描！
+#   - 正确的"镜像内集成服务"方式是直接注册到 /etc/s6-overlay/s6-rc.d/
+#     这是 linuxserver 所有官方镜像注册内置服务的标准路径。
+#
+# 构建命令 (在 zinoClaw/ 目录下执行):
+#   docker build -f Dockerfile.openclaw \
+#     -t harbor.naivehero.top:8443/baseimages/linuxserver/webtop:zino-kde-openclaw .
+# =============================================================================
+
+FROM harbor.naivehero.top:8443/baseimages/linuxserver/webtop:zino-kde-custom
+
+# -----------------------------------------------------------------------------
+# 第一步: 安装 Node.js 22
+# openclaw 官方要求 Node.js >= 22
+# 使用 NodeSource 官方脚本添加 apt 源，保证版本正确
+# 清华源已在底包中配置，这里仍用官方 nodesource 脚本（仅添加 nodejs 源）
+# -----------------------------------------------------------------------------
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends ca-certificates gnupg && \
+    # 添加 NodeSource Node.js 22 apt 仓库
+    curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
+    # 安装 Node.js（含 npm）
+    apt-get install -y --no-install-recommends nodejs && \
+    # 验证版本
+    node --version && \
+    npm --version && \
+    # 清理缓存
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# -----------------------------------------------------------------------------
+# 第二步: 全局安装 openclaw
+# npm install -g 会将 openclaw 安装到 /usr/local/lib/node_modules/openclaw
+# 并在 /usr/local/bin/openclaw 创建可执行软链接
+# -----------------------------------------------------------------------------
+RUN npm install -g openclaw@latest && \
+    # 验证安装成功
+    openclaw --version
+
+# -----------------------------------------------------------------------------
+# 第三步: 注册 openclaw-gateway 为 s6-overlay longrun 服务
+#
+# linuxserver 容器使用 s6-overlay v3 管理进程，服务注册方式：
+#   /etc/s6-overlay/s6-rc.d/<service-name>/
+#     ├── type        # 内容为 "longrun"（长期运行进程，崩溃后自动重启）
+#     ├── run         # 启动脚本（必须以 exec 开头，保证 s6 能正确收到信号）
+#     └── finish      # (可选) 服务退出时执行的清理脚本
+#
+#   /etc/s6-overlay/s6-rc.d/user2/contents.d/<service-name>
+#     这个空文件告诉 s6 将服务加入 user2 bundle（用户空间服务组），
+#     user2 是 linuxserver 所有用户服务的启动组，缺少这个文件服务不会被启动！
+#
+# openclaw gateway 默认绑定 127.0.0.1:18789 (loopback)
+# 在容器内使用 --bind lan 使其监听 0.0.0.0，允许从容器外访问
+# 注意: 安全依靠 docker 网络层和 gateway.auth.token 控制，不要裸暴露到公网
+# -----------------------------------------------------------------------------
+
+# 创建服务目录
+RUN mkdir -p /etc/s6-overlay/s6-rc.d/openclaw-gateway && \
+    # 声明服务类型为 longrun（长期运行，崩溃后自动重启）
+    printf 'longrun\n' > /etc/s6-overlay/s6-rc.d/openclaw-gateway/type && \
+    # 写入启动脚本
+    # with-contenv: 继承容器的完整环境变量（包括 PATH 等 docker -e 传入的变量）
+    # exec: 必须用 exec 替换 shell 进程，s6 才能正确追踪进程生命周期
+    # --allow-unconfigured: 允许无完整配置时启动（首次运行时必要）
+    # --bind lan: 绑定 0.0.0.0 允许容器外访问（通过 18789 端口）
+    printf '%s\n' \
+    '#!/usr/bin/with-contenv bash' \
+    '# openclaw gateway s6-overlay longrun 服务脚本' \
+    '# 由 s6-overlay 管理，崩溃后自动重启' \
+    'exec openclaw gateway --allow-unconfigured --bind lan' \
+    > /etc/s6-overlay/s6-rc.d/openclaw-gateway/run && \
+    chmod +x /etc/s6-overlay/s6-rc.d/openclaw-gateway/run
+
+# 将服务加入 user2 bundle（linuxserver 用户空间服务启动组）
+# 没有这一步，s6 知道服务存在但不会主动启动它
+RUN mkdir -p /etc/s6-overlay/s6-rc.d/user2/contents.d && \
+    touch /etc/s6-overlay/s6-rc.d/user2/contents.d/openclaw-gateway
+
+# -----------------------------------------------------------------------------
+# 元数据标签
+# -----------------------------------------------------------------------------
+LABEL maintainer="zhangjun" \
+    description="OpenClaw Gateway + KDE 桌面一体化镜像" \
+    base="harbor.naivehero.top:8443/baseimages/linuxserver/webtop:zino-kde-custom" \
+    version="1.0.0"
