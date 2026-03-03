@@ -118,6 +118,7 @@ def sync():
             print("✅ NapCat (QQ) 渠道已激活")
 
         # --- 4. 记忆与工作区增强 ---
+        config['agents']['defaults']['workspace'] = "/config/.openclaw/workspace"
         memory = ensure_path(config, ['memory'])
         memory['backend'] = "qmd"
         qmd = ensure_path(memory, ['qmd'])
