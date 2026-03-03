@@ -1,15 +1,23 @@
 # =============================================================================
-# OpenClaw 定制 KDE 桌面镜像
-# 基础镜像: linuxserver/webtop:zino-kde (私有 Harbor)
+# webclaw KDE 桌面底包
+# 基础镜像: lscr.io/linuxserver/webtop:ubuntu-kde (官方 Ubuntu KDE 桌面)
 # 功能:
+#   0. 替换 apt 源为清华镜像 + apt dist-upgrade 全量系统更新
 #   1. 安装 Ubuntu 常用基础命令工具
 #   2. 安装 JetBrains Mono 字体（字体文件，不做 KDE 配置，桌面自行设置）
 #   3. 安装 KDE Plasma Look-and-Feel 主题包
-# 构建命令:
-#   docker build -t harbor.naivehero.top:8443/baseimages/linuxserver/webtop:zino-kde-custom .
+#   4. 安装 VS Code（本地 .deb，自动注入官方 apt 源供后续更新）
+#   5. 安装 Cursor（本地 .deb，自动注入官方 apt 源供后续更新）
+#   6. 安装 Antigravity（via Google Cloud Artifact Registry apt 源）
+#   7. 安装 Google Chrome（via Google apt 源）
+#
+# 构建命令 (在 zinoClaw/ 目录下执行):
+#   docker build --progress=plain \
+#     -t harbor.naivehero.top:8443/baseimages/linuxserver/webtop:zino-kde-custom \
+#     .
 # =============================================================================
 
-FROM harbor.naivehero.top:8443/baseimages/linuxserver/webtop:zino-kde
+FROM lscr.io/linuxserver/webtop:ubuntu-kde
 
 # -----------------------------------------------------------------------------
 # 第零步: 替换 apt 源为清华大学镜像，并全量更新系统软件包
@@ -41,8 +49,7 @@ RUN printf '%s\n' \
 
 # -----------------------------------------------------------------------------
 # 第一步: 安装基础命令工具
-# 使用单个 RUN 指令合并操作，减少镜像层数
-# 安装后清理 apt 缓存，控制镜像体积
+# 同时安装后续步骤所需的 gnupg / ca-certificates（添加第三方 apt 源必需）
 # -----------------------------------------------------------------------------
 RUN apt-get update && apt-get install -y --no-install-recommends \
     # 网络诊断工具
@@ -66,6 +73,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     lsb-release \
     # 字体配置工具 (fc-cache 命令所在包)
     fontconfig \
+    # apt 第三方源所需（gpg 密钥、https 传输）
+    gnupg \
+    ca-certificates \
+    apt-transport-https \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -74,19 +85,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # 字体文件复制到 /usr/share/fonts/truetype/JetBrainsMono/ (系统级字体目录)
 # fc-cache -fv 刷新字体缓存，使字体全局生效
 # -----------------------------------------------------------------------------
-
-# 将本地字体目录复制到镜像内
 COPY docker-customize/Fonts/JetBrainsMono/ /usr/share/fonts/truetype/JetBrainsMono/
-
-# 刷新字体缓存
 RUN fc-cache -fv
 
 # -----------------------------------------------------------------------------
 # 第三步: 安装 KDE Plasma Look-and-Feel 主题
-# 这四个主题包均为 KDE Global Theme (look-and-feel)，
-# 标准安装目录为 /usr/share/plasma/look-and-feel/
-#
-# 包含的主题:
+# 标准安装目录: /usr/share/plasma/look-and-feel/
+# 包含主题:
 #   - com.github.varlesh.greybird   (Greybird KDE Look-and-Feel)
 #   - com.github.varlesh.materia-dark (Materia Dark KDE Look-and-Feel)
 #   - com.github.varlesh.rounded    (Rounded KDE Look-and-Feel)
@@ -95,10 +100,7 @@ RUN fc-cache -fv
 COPY docker-customize/Themes/ /tmp/themes/
 
 RUN set -eux; \
-    # 确保目标目录存在
     mkdir -p /usr/share/plasma/look-and-feel/; \
-    \
-    # 解压三个 .tar.gz 主题包
     for pkg in \
     com.github.varlesh.greybird.tar.gz \
     com.github.varlesh.materia-dark.tar.gz \
@@ -107,22 +109,87 @@ RUN set -eux; \
     echo ">>> 安装主题: $pkg"; \
     tar -xzf /tmp/themes/$pkg -C /usr/share/plasma/look-and-feel/; \
     done; \
-    \
-    # 解压 .tar.xz 主题包 (ExposeAir)
     echo ">>> 安装主题: exposeair-global-30.tar.xz"; \
     tar -xJf /tmp/themes/exposeair-global-30.tar.xz -C /usr/share/plasma/look-and-feel/; \
-    \
-    # 清理临时文件
     rm -rf /tmp/themes; \
-    \
-    # 验证主题已安装 (打印目录列表用于构建日志确认)
     echo ">>> 已安装的 KDE 主题:"; \
-    ls -la /usr/share/plasma/look-and-feel/
+    ls /usr/share/plasma/look-and-feel/
+
+# -----------------------------------------------------------------------------
+# 第四步: 安装 VS Code
+# 通过 Microsoft 官方 apt 源安装，不需要本地 .deb 文件
+# 使用 DEB822 格式（Ubuntu 推荐的新格式）写入 apt 源配置
+# 每次构建都会安装 Microsoft 仓库最新的 code 版本
+# 注意: packages.microsoft.com 在美国，构建时可能需要等待
+# -----------------------------------------------------------------------------
+RUN wget -qO- https://packages.microsoft.com/keys/microsoft.asc | \
+    gpg --dearmor > /tmp/microsoft.gpg && \
+    install -D -o root -g root -m 644 /tmp/microsoft.gpg /usr/share/keyrings/microsoft.gpg && \
+    rm -f /tmp/microsoft.gpg && \
+    # 使用 DEB822 格式写入 VS Code apt 源
+    printf '%s\n' \
+    'Types: deb' \
+    'URIs: https://packages.microsoft.com/repos/code' \
+    'Suites: stable' \
+    'Components: main' \
+    'Architectures: amd64,arm64,armhf' \
+    'Signed-By: /usr/share/keyrings/microsoft.gpg' \
+    > /etc/apt/sources.list.d/vscode.sources && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends code && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# -----------------------------------------------------------------------------
+# 第五步: 安装 Cursor
+# 使用本地 .deb 文件安装，安装过程会自动注入 Cursor 官方 apt 源
+# 保证容器内可通过 apt 进行后续更新
+# -----------------------------------------------------------------------------
+COPY docker-customize/Software/cursor_2.5.26_amd64.deb /tmp/cursor.deb
+
+RUN apt-get install -y /tmp/cursor.deb && \
+    apt-get clean && \
+    rm -f /tmp/cursor.deb && \
+    rm -rf /var/lib/apt/lists/*
+
+# -----------------------------------------------------------------------------
+# 第六步: 安装 Antigravity
+# 通过 Google Cloud Artifact Registry apt 源安装
+# 步骤: 添加 GPG 密钥 → 添加 apt 源 → apt install antigravity
+# 注意: 此源服务器在美国，如构建超时可多试几次
+# -----------------------------------------------------------------------------
+RUN mkdir -p /etc/apt/keyrings && \
+    # 下载并添加 Antigravity 仓库签名密钥
+    curl -fsSL https://us-central1-apt.pkg.dev/doc/repo-signing-key.gpg | \
+    gpg --dearmor --yes -o /etc/apt/keyrings/antigravity-repo-key.gpg && \
+    # 添加 Antigravity apt 源
+    printf 'deb [signed-by=/etc/apt/keyrings/antigravity-repo-key.gpg] https://us-central1-apt.pkg.dev/projects/antigravity-auto-updater-dev/ antigravity-debian main\n' \
+    > /etc/apt/sources.list.d/antigravity.list && \
+    # 更新缓存并安装
+    apt-get update && \
+    apt-get install -y --no-install-recommends antigravity && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# -----------------------------------------------------------------------------
+# 第七步: 安装 Google Chrome
+# 通过 Google 官方 apt 源安装 google-chrome-stable
+# 安装后 /etc/apt/sources.list.d/google-chrome.list 会保留，可在容器内更新
+# 注意: Google 源服务器在美国，如构建超时可多试几次
+# -----------------------------------------------------------------------------
+RUN curl -fsSL https://dl.google.com/linux/linux_signing_key.pub | \
+    gpg --dearmor -o /usr/share/keyrings/google-chrome.gpg && \
+    printf 'deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome.gpg] http://dl.google.com/linux/chrome/deb/ stable main\n' \
+    > /etc/apt/sources.list.d/google-chrome.list && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends google-chrome-stable && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 # -----------------------------------------------------------------------------
 # 元数据标签
 # -----------------------------------------------------------------------------
 LABEL maintainer="zhangjun" \
-    description="OpenClaw KDE 定制桌面 - 含 JetBrains Mono 字体 + 自定义主题" \
-    base="linuxserver/webtop:zino-kde" \
-    version="1.0.0"
+    description="webclaw KDE 桌面底包 - VSCode + Cursor + Antigravity + Chrome + JetBrains Mono + KDE 主题" \
+    base="lscr.io/linuxserver/webtop:ubuntu-kde" \
+    version="2.0.0"

@@ -26,12 +26,15 @@ zinoClaw/
 ├── BUILD.md                            # 本说明文档
 └── docker-customize/
     ├── Fonts/
-    │   └── JetBrainsMono/              # JetBrains Mono 全套字体 (.ttf)
-    └── Themes/
-        ├── com.github.varlesh.greybird.tar.gz
-        ├── com.github.varlesh.materia-dark.tar.gz
-        ├── com.github.varlesh.rounded.tar.gz
-        └── exposeair-global-30.tar.xz
+    │   └── JetBrainsMono/              # JetBrains Mono 全套字体文件 (.ttf)
+    ├── Themes/
+    │   ├── com.github.varlesh.greybird.tar.gz
+    │   ├── com.github.varlesh.materia-dark.tar.gz
+    │   ├── com.github.varlesh.rounded.tar.gz
+    │   └── exposeair-global-30.tar.xz
+    └── Software/
+        ├── code_1.109.5-1771531656_amd64.deb  # VS Code
+        └── cursor_2.5.26_amd64.deb            # Cursor
 ```
 
 ---
@@ -65,6 +68,10 @@ cd /path/to/zinoClaw
 | 第一步 | 安装常用基础工具（ping、netstat、curl、wget、git、vim、htop 等）|
 | 第二步 | 安装 JetBrains Mono 字体，刷新字体缓存 |
 | 第三步 | 安装 4 个 KDE Plasma Look-and-Feel 主题包 |
+| 第四步 | 安装 VS Code（本地 .deb，自动注入官方 apt 源）|
+| 第五步 | 安装 Cursor（本地 .deb，自动注入官方 apt 源）|
+| 第六步 | 安装 Antigravity（Google Cloud Artifact Registry apt 源）|
+| 第七步 | 安装 Google Chrome（Google 官方 apt 源）|
 
 ### 构建命令
 
@@ -89,6 +96,7 @@ docker run --rm -it \
     echo '=== 字体 ===' && fc-list | grep JetBrains
     echo '=== 主题 ===' && ls /usr/share/plasma/look-and-feel/
     echo '=== 命令 ===' && which ping git curl wget vim htop
+    echo '=== 软件 ===' && which code cursor antigravity google-chrome-stable
   "
 ```
 
@@ -102,6 +110,8 @@ com.github.varlesh.greybird   com.github.varlesh.materia-dark
 com.github.varlesh.rounded    ExposeAir
 === 命令 ===
 /usr/bin/ping  /usr/bin/git  /usr/bin/curl  /usr/bin/wget  /usr/bin/vim  /usr/bin/htop
+=== 软件 ===
+/usr/bin/code  /usr/bin/cursor  /usr/bin/antigravity  /usr/bin/google-chrome-stable
 ```
 
 ### 推送底包到 Harbor
