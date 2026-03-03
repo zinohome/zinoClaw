@@ -88,14 +88,16 @@ RUN printf '#!/usr/bin/with-contenv bash\n\
 # 2. 注册初始化服务 (oneshot: init-openclaw)
 RUN mkdir -p /etc/s6-overlay/s6-rc.d/init-openclaw && \
     echo "oneshot" > /etc/s6-overlay/s6-rc.d/init-openclaw/type && \
-    echo "/usr/local/bin/openclaw-init" > /etc/s6-overlay/s6-rc.d/init-openclaw/up && \
+    printf "#!/bin/bash\nexec /usr/local/bin/openclaw-init\n" > /etc/s6-overlay/s6-rc.d/init-openclaw/up && \
+    chmod +x /etc/s6-overlay/s6-rc.d/init-openclaw/up && \
     mkdir -p /etc/s6-overlay/s6-rc.d/user/contents.d && \
     touch /etc/s6-overlay/s6-rc.d/user/contents.d/init-openclaw
 
 # 3. 注册 Gateway 服务 (longrun: svc-openclaw)
 RUN mkdir -p /etc/s6-overlay/s6-rc.d/svc-openclaw && \
     echo "longrun" > /etc/s6-overlay/s6-rc.d/svc-openclaw/type && \
-    echo "/usr/local/bin/openclaw-run" > /etc/s6-overlay/s6-rc.d/svc-openclaw/run && \
+    printf "#!/usr/bin/with-contenv bash\nexec /usr/local/bin/openclaw-run\n" > /etc/s6-overlay/s6-rc.d/svc-openclaw/run && \
+    chmod +x /etc/s6-overlay/s6-rc.d/svc-openclaw/run && \
     mkdir -p /etc/s6-overlay/s6-rc.d/svc-openclaw/dependencies.d && \
     touch /etc/s6-overlay/s6-rc.d/svc-openclaw/dependencies.d/init-openclaw && \
     touch /etc/s6-overlay/s6-rc.d/user/contents.d/svc-openclaw
@@ -104,6 +106,7 @@ RUN mkdir -p /etc/s6-overlay/s6-rc.d/svc-openclaw && \
 # 元数据标签
 # -----------------------------------------------------------------------------
 LABEL maintainer="zhangjun" \
-    description="zinoClaw Pro - 稳定性增强版 (v1.5.0)" \
-    version="1.5.0"
+    description="zinoClaw Pro - 稳定性增强版 (v1.5.1)" \
+    version="1.5.1"
+
 
