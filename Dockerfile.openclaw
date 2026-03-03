@@ -81,6 +81,7 @@ RUN mkdir -p /etc/s6-overlay/s6-rc.d/openclaw-gateway && \
     '# 强制允许非 loopback 绑定的跨域回退，并允许局域网 HTTP 下的 Token 认证' \
     'openclaw config set gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback true >/dev/null 2>&1 || true' \
     'openclaw config set gateway.controlUi.allowInsecureAuth true >/dev/null 2>&1 || true' \
+    'openclaw config set gateway.controlUi.dangerouslyDisableDeviceAuth true >/dev/null 2>&1 || true' \
     'exec openclaw gateway --allow-unconfigured --bind lan' \
     > /etc/s6-overlay/s6-rc.d/openclaw-gateway/run && \
     chmod +x /etc/s6-overlay/s6-rc.d/openclaw-gateway/run
