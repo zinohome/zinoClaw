@@ -39,56 +39,62 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # -----------------------------------------------------------------------------
-# 第二步: 全局安装 openclaw
-# npm install -g 会将 openclaw 安装到 /usr/local/lib/node_modules/openclaw
-# 并在 /usr/local/bin/openclaw 创建可执行软链接
+# 第二步: 安装 OpenClaw 及其增强工具
 # -----------------------------------------------------------------------------
-RUN npm install -g openclaw@latest && \
-    # 验证安装成功
+RUN npm install -g openclaw@latest opencode-ai@latest && \
+    # 安装 bun (部分辅助工具或插件可能依赖)
+    curl -fsSL https://bun.sh/install | BUN_INSTALL=/usr/local bash && \
+    # 验证安装
     openclaw --version
 
 # -----------------------------------------------------------------------------
-# 第三步: 注册 openclaw-gateway 为 s6-overlay longrun 服务
-#
-# linuxserver 容器使用 s6-overlay v3 管理进程，服务注册方式：
-#   /etc/s6-overlay/s6-rc.d/<service-name>/
-#     ├── type        # 内容为 "longrun"（长期运行进程，崩溃后自动重启）
-#     ├── run         # 启动脚本（必须以 exec 开头，保证 s6 能正确收到信号）
-#     └── finish      # (可选) 服务退出时执行的清理脚本
-#
-#   /etc/s6-overlay/s6-rc.d/user2/contents.d/<service-name>
-#     这个空文件告诉 s6 将服务加入 user2 bundle（用户空间服务组），
-#     user2 是 linuxserver 所有用户服务的启动组，缺少这个文件服务不会被启动！
-#
-# openclaw gateway 默认绑定 127.0.0.1:18789 (loopback)
-# 在容器内使用 --bind lan 使其监听 0.0.0.0，允许从容器外访问
-# 注意: 安全依靠 docker 网络层和 gateway.auth.token 控制，不要裸暴露到公网
+# 第三步: 准备默认工作区内容与初始化脚本
+# -----------------------------------------------------------------------------
+
+# 将从 1panel 提取的 workspace 模板复制到镜像内部的备份目录
+COPY docker-customize/openclaw-workspace/ /defaults/openclaw-workspace/
+
+# 创建 s6-overlay 的 oneshot 初始化脚本，用于在启动服务前部署工作区
+RUN mkdir -p /etc/s6-overlay/s6-rc.d/init-openclaw-workspace && \
+    printf 'oneshot\n' > /etc/s6-overlay/s6-rc.d/init-openclaw-workspace/type && \
+    printf '%s\n' \
+    '#!/bin/bash' \
+    'if [ ! -d "/config/.openclaw/workspace" ]; then' \
+    '    echo "Creating default OpenClaw workspace..."' \
+    '    mkdir -p "/config/.openclaw/workspace"' \
+    '    cp -r /defaults/openclaw-workspace/* "/config/.openclaw/workspace/"' \
+    '    chown -R abc:abc "/config/.openclaw" || true' \
+    'fi' \
+    > /etc/s6-overlay/s6-rc.d/init-openclaw-workspace/up && \
+    chmod +x /etc/s6-overlay/s6-rc.d/init-openclaw-workspace/up && \
+    # 将其加入 user 启动链，并让 openclaw-gateway 依赖它
+    mkdir -p /etc/s6-overlay/s6-rc.d/user/contents.d && \
+    touch /etc/s6-overlay/s6-rc.d/user/contents.d/init-openclaw-workspace
+
+# -----------------------------------------------------------------------------
+# 第四步: 注册 openclaw-gateway 为 s6-overlay longrun 服务
 # -----------------------------------------------------------------------------
 
 # 创建服务目录
 RUN mkdir -p /etc/s6-overlay/s6-rc.d/openclaw-gateway && \
-    # 声明服务类型为 longrun（长期运行，崩溃后自动重启）
     printf 'longrun\n' > /etc/s6-overlay/s6-rc.d/openclaw-gateway/type && \
+    # 声明依赖: 必须先跑完 init-openclaw-workspace
+    mkdir -p /etc/s6-overlay/s6-rc.d/openclaw-gateway/dependencies.d && \
+    touch /etc/s6-overlay/s6-rc.d/openclaw-gateway/dependencies.d/init-openclaw-workspace && \
     # 写入启动脚本
-    # with-contenv: 继承容器的完整环境变量（包括 PATH 等 docker -e 传入的变量）
-    # exec: 必须用 exec 替换 shell 进程，s6 才能正确追踪进程生命周期
-    # --allow-unconfigured: 允许无完整配置时启动（首次运行时必要）
-    # --bind lan: 绑定 0.0.0.0 允许容器外访问（通过 18789 端口）
     printf '%s\n' \
     '#!/usr/bin/with-contenv bash' \
-    '# openclaw gateway s6-overlay longrun 服务脚本' \
-    '# 由 s6-overlay 管理，崩溃后自动重启' \
-    '# 强制允许非 loopback 绑定的跨域回退，并允许局域网 HTTP 下的 Token 认证' \
+    '# 自动配置安全项以允许局域网访问' \
     'openclaw config set gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback true >/dev/null 2>&1 || true' \
     'openclaw config set gateway.controlUi.allowInsecureAuth true >/dev/null 2>&1 || true' \
     'openclaw config set gateway.controlUi.dangerouslyDisableDeviceAuth true >/dev/null 2>&1 || true' \
     'openclaw config set gateway.bind lan >/dev/null 2>&1 || true' \
+    '# 启动网关，--dev 模式会自动加载 workspace 目录' \
     'exec openclaw gateway --allow-unconfigured --dev --bind lan' \
     > /etc/s6-overlay/s6-rc.d/openclaw-gateway/run && \
     chmod +x /etc/s6-overlay/s6-rc.d/openclaw-gateway/run
 
-# 将服务加入 user2 bundle（linuxserver 用户空间服务启动组）
-# 没有这一步，s6 知道服务存在但不会主动启动它
+# 将服务加入 user2 bundle
 RUN mkdir -p /etc/s6-overlay/s6-rc.d/user2/contents.d && \
     touch /etc/s6-overlay/s6-rc.d/user2/contents.d/openclaw-gateway
 
@@ -96,6 +102,6 @@ RUN mkdir -p /etc/s6-overlay/s6-rc.d/user2/contents.d && \
 # 元数据标签
 # -----------------------------------------------------------------------------
 LABEL maintainer="zhangjun" \
-    description="OpenClaw Gateway + KDE 桌面一体化镜像" \
+    description="OpenClaw Gateway + KDE 桌面一体化镜像 (含增强工具与初始化工作区)" \
     base="harbor.naivehero.top:8443/baseimages/linuxserver/webtop:zino-kde-custom" \
-    version="1.0.0"
+    version="1.1.0"
