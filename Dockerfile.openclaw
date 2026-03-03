@@ -48,21 +48,6 @@ RUN npm install -g openclaw@latest opencode-ai@latest \
     npx playwright install chromium
 
 # -----------------------------------------------------------------------------
-# 插件预装: 国产 IM 渠道增强 (安装到全局路径，init 时映射)
-# -----------------------------------------------------------------------------
-RUN mkdir -p /opt/openclaw-plugins && \
-    # 1. 钉钉插件
-    git clone --depth 1 https://github.com/soimy/openclaw-channel-dingtalk.git /opt/openclaw-plugins/dingtalk && \
-    cd /opt/openclaw-plugins/dingtalk && npm install --production && \
-    # 2. QQ/NapCat 插件
-    git clone --depth 1 https://github.com/Daiyimo/openclaw-napcat.git /opt/openclaw-plugins/napcat && \
-    cd /opt/openclaw-plugins/napcat && npm install --production && \
-    # 3. 飞书
-    npm install --prefix /opt/openclaw-plugins/feishu @openclaw/feishu && \
-    # 4. 企业微信
-    npm install --prefix /opt/openclaw-plugins/wecom @sunnoy/wecom
-
-# -----------------------------------------------------------------------------
 # 第三步: 准备自动化部署脚本与工作区模板
 # -----------------------------------------------------------------------------
 
@@ -71,7 +56,7 @@ COPY docker-customize/openclaw-workspace/ /defaults/openclaw-workspace/
 COPY docker-customize/openclaw-config-bridge.py /usr/local/bin/openclaw-config-bridge.py
 
 # 创建 s6-overlay 的 oneshot 初始化任务
-# 负责: 1. 部署默认 workspace; 2. 部署预装插件; 3. 根据环境变量同步 openclaw.json
+# 负责: 1. 部署默认 workspace; 2. 根据环境变量同步 openclaw.json
 RUN mkdir -p /etc/s6-overlay/s6-rc.d/init-openclaw && \
     printf 'oneshot\n' > /etc/s6-overlay/s6-rc.d/init-openclaw/type && \
     printf '%s\n' \
@@ -82,19 +67,10 @@ RUN mkdir -p /etc/s6-overlay/s6-rc.d/init-openclaw && \
     '    mkdir -p "/config/.openclaw/workspace"' \
     '    cp -r /defaults/openclaw-workspace/* "/config/.openclaw/workspace/"' \
     'fi' \
-    '# 2. 部署预装插件 (符号链接到持久性目录)' \
-    'echo "[Init] Linking pre-installed plugins..."' \
-    'mkdir -p "/config/.openclaw/extensions"' \
-    'for plugin in /opt/openclaw-plugins/*; do' \
-    '    name=$(basename "$plugin")' \
-    '    if [ ! -e "/config/.openclaw/extensions/$name" ]; then' \
-    '        ln -sf "$plugin" "/config/.openclaw/extensions/$name"' \
-    '    fi' \
-    'done' \
-    '# 3. 执行配置对桥接 (ENV -> JSON)' \
+    '# 2. 执行配置对桥接 (ENV -> JSON)' \
     'echo "[Init] Synchronizing configuration from environment variables..."' \
     'python3 /usr/local/bin/openclaw-config-bridge.py' \
-    '# 4. 权限修正' \
+    '# 3. 权限修正' \
     'chown -R abc:abc "/config/.openclaw" || true' \
     > /etc/s6-overlay/s6-rc.d/init-openclaw/up && \
     chmod +x /etc/s6-overlay/s6-rc.d/init-openclaw/up && \
@@ -128,5 +104,5 @@ RUN mkdir -p /etc/s6-overlay/s6-rc.d/user2/contents.d && \
 # 元数据标签
 # -----------------------------------------------------------------------------
 LABEL maintainer="zhangjun" \
-    description="zinoClaw Pro - 开箱即用的自动化 OpenClaw 镜像" \
-    version="1.2.0"
+    description="zinoClaw Pro - 开箱即用的自动化 OpenClaw 镜像 (纯净版)" \
+    version="1.3.0"
