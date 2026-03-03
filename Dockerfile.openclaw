@@ -20,81 +20,107 @@
 FROM harbor.naivehero.top:8443/baseimages/linuxserver/webtop:zino-kde-custom
 
 # -----------------------------------------------------------------------------
-# 第一步: 安装 Node.js 22
-# openclaw 官方要求 Node.js >= 22
-# 使用 NodeSource 官方脚本添加 apt 源，保证版本正确
-# 清华源已在底包中配置，这里仍用官方 nodesource 脚本（仅添加 nodejs 源）
+# 第一步: 安装系统依赖 (含浏览器自动化所需环境与字体)
 # -----------------------------------------------------------------------------
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends ca-certificates gnupg && \
+    apt-get install -y --no-install-recommends \
+    # 基础工具
+    ca-certificates gnupg curl git jq python3 python3-pip \
+    # 浏览器自动化 (Playwright/Puppeteer) 依赖
+    chromium fonts-liberation fonts-noto-cjk fonts-noto-color-emoji \
+    libnss3 libatk-bridge2.0-0 libgtk-3-0 libasound2 && \
     # 添加 NodeSource Node.js 22 apt 仓库
     curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
-    # 安装 Node.js（含 npm）
     apt-get install -y --no-install-recommends nodejs && \
-    # 验证版本
-    node --version && \
-    npm --version && \
+    # 安装 bun 和 qmd (高性能运行时与记忆插件)
+    curl -fsSL https://bun.sh/install | BUN_INSTALL=/usr/local bash && \
+    /usr/local/bin/bun install -g @tobilu/qmd && \
     # 清理缓存
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
 # -----------------------------------------------------------------------------
-# 第二步: 安装 OpenClaw 及其增强工具
+# 第二步: 安装 OpenClaw 及其增强工具包 (Playwright, opencode-ai 等)
 # -----------------------------------------------------------------------------
-RUN npm install -g openclaw@latest opencode-ai@latest && \
-    # 安装 bun (部分辅助工具或插件可能依赖)
-    curl -fsSL https://bun.sh/install | BUN_INSTALL=/usr/local bash && \
-    # 验证安装
-    openclaw --version
+RUN npm install -g openclaw@latest opencode-ai@latest \
+    playwright playwright-extra puppeteer-extra-plugin-stealth @steipete/bird && \
+    # 安装 Playwright 浏览器二进制 (Chromium 已经在系统层安装，这里确保驱动匹配)
+    npx playwright install chromium
 
 # -----------------------------------------------------------------------------
-# 第三步: 准备默认工作区内容与初始化脚本
+# 插件预装: 国产 IM 渠道增强 (安装到全局路径，init 时映射)
+# -----------------------------------------------------------------------------
+RUN mkdir -p /opt/openclaw-plugins && \
+    # 1. 钉钉插件
+    git clone --depth 1 https://github.com/soimy/openclaw-channel-dingtalk.git /opt/openclaw-plugins/dingtalk && \
+    cd /opt/openclaw-plugins/dingtalk && npm install --production && \
+    # 2. QQ/NapCat 插件
+    git clone --depth 1 https://github.com/Daiyimo/openclaw-napcat.git /opt/openclaw-plugins/napcat && \
+    cd /opt/openclaw-plugins/napcat && npm install --production && \
+    # 3. 飞书
+    npm install --prefix /opt/openclaw-plugins/feishu @openclaw/feishu && \
+    # 4. 企业微信
+    npm install --prefix /opt/openclaw-plugins/wecom @sunnoy/wecom
+
+# -----------------------------------------------------------------------------
+# 第三步: 准备自动化部署脚本与工作区模板
 # -----------------------------------------------------------------------------
 
-# 将从 1panel 提取的 workspace 模板复制到镜像内部的备份目录
+# 复制工作区模板和配置桥接脚本到镜像
 COPY docker-customize/openclaw-workspace/ /defaults/openclaw-workspace/
+COPY docker-customize/openclaw-config-bridge.py /usr/local/bin/openclaw-config-bridge.py
 
-# 创建 s6-overlay 的 oneshot 初始化脚本，用于在启动服务前部署工作区
-RUN mkdir -p /etc/s6-overlay/s6-rc.d/init-openclaw-workspace && \
-    printf 'oneshot\n' > /etc/s6-overlay/s6-rc.d/init-openclaw-workspace/type && \
+# 创建 s6-overlay 的 oneshot 初始化任务
+# 负责: 1. 部署默认 workspace; 2. 部署预装插件; 3. 根据环境变量同步 openclaw.json
+RUN mkdir -p /etc/s6-overlay/s6-rc.d/init-openclaw && \
+    printf 'oneshot\n' > /etc/s6-overlay/s6-rc.d/init-openclaw/type && \
     printf '%s\n' \
     '#!/bin/bash' \
+    '# 1. 部署默认 workspace (如果不存在)' \
     'if [ ! -d "/config/.openclaw/workspace" ]; then' \
-    '    echo "Creating default OpenClaw workspace..."' \
+    '    echo "[Init] Deploying default OpenClaw workspace..."' \
     '    mkdir -p "/config/.openclaw/workspace"' \
     '    cp -r /defaults/openclaw-workspace/* "/config/.openclaw/workspace/"' \
-    '    chown -R abc:abc "/config/.openclaw" || true' \
     'fi' \
-    > /etc/s6-overlay/s6-rc.d/init-openclaw-workspace/up && \
-    chmod +x /etc/s6-overlay/s6-rc.d/init-openclaw-workspace/up && \
-    # 将其加入 user 启动链，并让 openclaw-gateway 依赖它
+    '# 2. 部署预装插件 (符号链接到持久性目录)' \
+    'echo "[Init] Linking pre-installed plugins..."' \
+    'mkdir -p "/config/.openclaw/extensions"' \
+    'for plugin in /opt/openclaw-plugins/*; do' \
+    '    name=$(basename "$plugin")' \
+    '    if [ ! -e "/config/.openclaw/extensions/$name" ]; then' \
+    '        ln -sf "$plugin" "/config/.openclaw/extensions/$name"' \
+    '    fi' \
+    'done' \
+    '# 3. 执行配置对桥接 (ENV -> JSON)' \
+    'echo "[Init] Synchronizing configuration from environment variables..."' \
+    'python3 /usr/local/bin/openclaw-config-bridge.py' \
+    '# 4. 权限修正' \
+    'chown -R abc:abc "/config/.openclaw" || true' \
+    > /etc/s6-overlay/s6-rc.d/init-openclaw/up && \
+    chmod +x /etc/s6-overlay/s6-rc.d/init-openclaw/up && \
+    # 注册到启动组
     mkdir -p /etc/s6-overlay/s6-rc.d/user/contents.d && \
-    touch /etc/s6-overlay/s6-rc.d/user/contents.d/init-openclaw-workspace
+    touch /etc/s6-overlay/s6-rc.d/user/contents.d/init-openclaw
 
 # -----------------------------------------------------------------------------
-# 第四步: 注册 openclaw-gateway 为 s6-overlay longrun 服务
+# 第四步: 重新定义 openclaw-gateway 长期运行服务
 # -----------------------------------------------------------------------------
-
-# 创建服务目录
 RUN mkdir -p /etc/s6-overlay/s6-rc.d/openclaw-gateway && \
     printf 'longrun\n' > /etc/s6-overlay/s6-rc.d/openclaw-gateway/type && \
-    # 声明依赖: 必须先跑完 init-openclaw-workspace
+    # 依赖初始化任务
     mkdir -p /etc/s6-overlay/s6-rc.d/openclaw-gateway/dependencies.d && \
-    touch /etc/s6-overlay/s6-rc.d/openclaw-gateway/dependencies.d/init-openclaw-workspace && \
-    # 写入启动脚本
+    touch /etc/s6-overlay/s6-rc.d/openclaw-gateway/dependencies.d/init-openclaw && \
+    # 启动脚本
     printf '%s\n' \
     '#!/usr/bin/with-contenv bash' \
-    '# 自动配置安全项以允许局域网访问' \
-    'openclaw config set gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback true >/dev/null 2>&1 || true' \
-    'openclaw config set gateway.controlUi.allowInsecureAuth true >/dev/null 2>&1 || true' \
-    'openclaw config set gateway.controlUi.dangerouslyDisableDeviceAuth true >/dev/null 2>&1 || true' \
-    'openclaw config set gateway.bind lan >/dev/null 2>&1 || true' \
-    '# 启动网关，--dev 模式会自动加载 workspace 目录' \
-    'exec openclaw gateway --allow-unconfigured --dev --bind lan' \
+    'echo "[Service] Starting OpenClaw Gateway..."' \
+    '# 切换到工作目录，使用配置好的 JSON 启动，--dev 模式会自动加载 workspace' \
+    'cd /config/.openclaw' \
+    'exec gosu abc openclaw gateway --dev --bind lan --verbose' \
     > /etc/s6-overlay/s6-rc.d/openclaw-gateway/run && \
     chmod +x /etc/s6-overlay/s6-rc.d/openclaw-gateway/run
 
-# 将服务加入 user2 bundle
+# 激活服务
 RUN mkdir -p /etc/s6-overlay/s6-rc.d/user2/contents.d && \
     touch /etc/s6-overlay/s6-rc.d/user2/contents.d/openclaw-gateway
 
@@ -102,6 +128,5 @@ RUN mkdir -p /etc/s6-overlay/s6-rc.d/user2/contents.d && \
 # 元数据标签
 # -----------------------------------------------------------------------------
 LABEL maintainer="zhangjun" \
-    description="OpenClaw Gateway + KDE 桌面一体化镜像 (含增强工具与初始化工作区)" \
-    base="harbor.naivehero.top:8443/baseimages/linuxserver/webtop:zino-kde-custom" \
-    version="1.1.0"
+    description="zinoClaw Pro - 开箱即用的自动化 OpenClaw 镜像" \
+    version="1.2.0"
