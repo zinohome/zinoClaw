@@ -74,10 +74,9 @@ COPY docker-customize/openclaw-config-bridge.py /usr/local/bin/openclaw-config-b
 RUN printf '#!/usr/bin/with-contenv bash\n\
     # 确保父目录存在\n\
     mkdir -p /config/.openclaw/workspace\n\
-    # 处理空工作区初始化\n\
-    if [ ! -f "/config/.openclaw/workspace/config.example.md" ]; then\n\
-    cp -r /defaults/openclaw-workspace/* "/config/.openclaw/workspace/" || true\n\
-    fi\n\
+    # 【幂等初始化策略】使用 cp -rn 只补充缺失文件，绝不覆盖用户已有的修改\n\
+    # -r: 递归复制目录  -n: no-clobber，已存在的文件跳过\n\
+    cp -rn /defaults/openclaw-workspace/. "/config/.openclaw/workspace/" 2>/dev/null || true\n\
     # 预创建潜在的权限敏感文件 (解决 EACCES 问题)\n\
     touch /config/.openclaw/exec-approvals.json\n\
     # 调用 Python 桥接器同步环境配置\n\
