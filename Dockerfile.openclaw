@@ -36,6 +36,7 @@ RUN apt-get update && \
     npm install -g --production \
     openclaw@latest \
     opencode-ai@latest \
+    clawhub@latest \
     playwright@latest \
     playwright-extra \
     puppeteer-extra-plugin-stealth \
