@@ -1,40 +1,29 @@
-# TOOLS.md - Local Notes
+# TOOLS.md - 工具速查卡
 
-Skills define _how_ tools work. This file is for _your_ specifics — the stuff that's unique to your setup.
+_本地配置、快捷命令、环境信息。这里记的是「你的」特定配置，不是通用说明。_
 
-## What Goes Here
+## 环境信息
 
-Things like:
+- **运行方式**：Docker 容器（zinoClaw）
+- **Workspace 路径**：`/config/.openclaw/workspace`
+- **配置文件**：`/config/.openclaw/openclaw.json`
+- **Chromium**：`/usr/bin/chromium`（无头模式）
 
-- Camera names and locations
-- SSH hosts and aliases
-- Preferred voices for TTS
-- Speaker/room names
-- Device nicknames
-- Anything environment-specific
+## IM 频道
 
-## Examples
+- **Slack**：Socket Mode，Bot 名称 ReToneClaw
+  - 频道策略：`groupPolicy: open`，`dmPolicy: allowlist`
 
-```markdown
-### Cameras
+## 常用操作
 
-- living-room → Main area, 180° wide angle
-- front-door → Entrance, motion-triggered
+```bash
+# 查看容器日志
+docker logs <容器名> -f
 
-### SSH
-
-- home-server → 192.168.1.100, user: admin
-
-### TTS
-
-- Preferred voice: "Nova" (warm, slightly British)
-- Default speaker: Kitchen HomePod
+# 重启服务
+docker restart <容器名>
 ```
-
-## Why Separate?
-
-Skills are shared. Your setup is yours. Keeping them apart means you can update skills without losing your notes, and share skills without leaking your infrastructure.
 
 ---
 
-Add whatever helps you do your job. This is your cheat sheet.
+_在这里添加你实际用到的配置和备忘。这里记的越详细，助手上手越快。_

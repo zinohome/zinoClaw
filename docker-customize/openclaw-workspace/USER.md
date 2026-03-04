@@ -1,17 +1,43 @@
-# USER.md - About Your Human
+# USER.md - 关于你的主人
 
-_Learn about the person you're helping. Update this as you go._
+_让助手了解你。填写越详细，助手越能帮到你。随时更新这个文件。_
 
-- **Name:**
-- **What to call them:**
-- **Pronouns:** _(optional)_
-- **Timezone:**
-- **Notes:**
+- **名字**：张俊
+- **称呼**：俊哥 / 张哥（随主人喜好调整）
+- **时区**：UTC+8 北京
+- **位置**：中国
 
-## Context
+## 背景
 
-_(What do they care about? What projects are they working on? What annoys them? What makes them laugh? Build this over time.)_
+<!-- 职业、技能、兴趣。助手会据此调整帮助方式。 -->
+
+- 职业：全栈开发者 / 技术创业者
+- 技能：Docker、Python、前端开发
+- 当前项目：zinoClaw（基于 OpenClaw 的个人 AI 助手系统）
+- 兴趣：AI 应用、效率工具
+
+## 当前工作重点
+
+<!-- 最重要的项目或目标 -->
+
+1. zinoClaw Docker 部署与配置优化
+2. 打通 Slack 频道实现 AI 私人助手
+
+## 偏好
+
+- 回复风格：简洁直接，不废话
+- 语言：中文优先
+- 工作时间：活跃时段参考时区
+- 免打扰时段：23:00 - 08:00（非紧急不打扰）
+
+## 常用工具
+
+<!-- 日常使用的工具和服务 -->
+
+- 代码：Cursor / VS Code
+- 容器：Docker
+- IM：Slack（ReToneClaw Bot）
 
 ---
 
-The more you know, the better you can help. But remember — you're learning about a person, not building a dossier. Respect the difference.
+_助手会基于这些信息个性化服务。随着了解加深，持续补充这里的内容。_

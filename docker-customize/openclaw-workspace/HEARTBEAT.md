@@ -1,5 +1,14 @@
-# HEARTBEAT.md
+# HEARTBEAT.md - 心跳检查项
 
-# Keep this file empty (or with only comments) to skip heartbeat API calls.
+# 助手每次收到心跳时读取此文件，执行以下检查。
+# 没有任务时回复 HEARTBEAT_OK。
 
-# Add tasks below when you want the agent to check something periodically.
+# === 当前启用的检查项 ===
+
+# （暂无定期任务，有需要时在下面添加）
+
+# === 示例检查项（取消注释即启用）===
+
+ - 检查是否有未完成的 TODO（读取 TODO.md）
+ - 检查 memory/ 下有没有需要整理的每日笔记
+ - 如果超过 3 天没更新 MEMORY.md，提醒主人做一次记忆整理
