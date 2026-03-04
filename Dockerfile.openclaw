@@ -72,16 +72,24 @@ COPY docker-customize/openclaw-config-bridge.py /usr/local/bin/openclaw-config-b
 
 # 1. 复制配置桥接脚本并创建运行脚本
 RUN printf '#!/usr/bin/with-contenv bash\n\
-    if [ ! -d "/config/.openclaw/workspace" ]; then\n\
-    mkdir -p "/config/.openclaw/workspace"\n\
-    cp -r /defaults/openclaw-workspace/* "/config/.openclaw/workspace/"\n\
+    # 确保父目录存在\n\
+    mkdir -p /config/.openclaw/workspace\n\
+    # 处理空工作区初始化\n\
+    if [ ! -f "/config/.openclaw/workspace/config.example.md" ]; then\n\
+    cp -r /defaults/openclaw-workspace/* "/config/.openclaw/workspace/" || true\n\
     fi\n\
+    # 预创建潜在的权限敏感文件 (解决 EACCES 问题)\n\
+    touch /config/.openclaw/exec-approvals.json\n\
+    # 调用 Python 桥接器同步环境配置\n\
     python3 /usr/local/bin/openclaw-config-bridge.py\n\
-    chown -R abc:abc "/config/.openclaw" || true\n' > /usr/local/bin/openclaw-init && \
+    # 深度权限修复\n\
+    chown -R abc:abc /config/.openclaw\n\
+    chmod -R 755 /config/.openclaw\n' > /usr/local/bin/openclaw-init && \
     chmod +x /usr/local/bin/openclaw-init && \
     \
     printf '#!/usr/bin/with-contenv bash\n\
     cd /config/.openclaw\n\
+    export HOME=/config\n\
     exec gosu abc openclaw gateway --dev --bind lan --verbose\n' > /usr/local/bin/openclaw-run && \
     chmod +x /usr/local/bin/openclaw-run
 
@@ -90,6 +98,8 @@ RUN mkdir -p /etc/s6-overlay/s6-rc.d/init-openclaw && \
     echo "oneshot" > /etc/s6-overlay/s6-rc.d/init-openclaw/type && \
     printf "#!/bin/bash\nexec /usr/local/bin/openclaw-init\n" > /etc/s6-overlay/s6-rc.d/init-openclaw/up && \
     chmod +x /etc/s6-overlay/s6-rc.d/init-openclaw/up && \
+    mkdir -p /etc/s6-overlay/s6-rc.d/init-openclaw/dependencies.d && \
+    touch /etc/s6-overlay/s6-rc.d/init-openclaw/dependencies.d/init-adduser && \
     mkdir -p /etc/s6-overlay/s6-rc.d/user/contents.d && \
     touch /etc/s6-overlay/s6-rc.d/user/contents.d/init-openclaw
 
@@ -106,7 +116,8 @@ RUN mkdir -p /etc/s6-overlay/s6-rc.d/svc-openclaw && \
 # 元数据标签
 # -----------------------------------------------------------------------------
 LABEL maintainer="zhangjun" \
-    description="zinoClaw Pro - 稳定性增强版 (v1.5.1)" \
-    version="1.5.1"
+    description="zinoClaw Pro - 稳定性增强版 (v1.5.2)" \
+    version="1.5.2"
+
 
 
