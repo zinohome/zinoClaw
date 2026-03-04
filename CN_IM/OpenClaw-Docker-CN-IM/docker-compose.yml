@@ -12,10 +12,19 @@ services:
     # 可选：指定容器运行 UID:GID（例如 1000:1000）
     # 默认保持 root 启动，以便 init.sh 自动修复挂载卷权限后再降权运行网关
     user: ${OPENCLAW_RUN_USER:-0:0}
+    # 【浏览器关键配置】Chromium 需要足够的共享内存，否则会崩溃
+    # Docker 默认只有 64MB，设为 2GB 确保稳定运行
+    shm_size: '1gb'
+    # 让容器内可以访问宿主机服务（如 Ollama）
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       TZ: Asia/Shanghai
       HOME: /home/node
       TERM: xterm-256color
+      # 【浏览器】直接告知 Playwright 使用系统 Chromium 路径
+      PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH: /usr/bin/chromium
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
       # 模型配置
       SYNC_MODEL_CONFIG: ${SYNC_MODEL_CONFIG}
       MODEL_ID: ${MODEL_ID}

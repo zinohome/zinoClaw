@@ -25,8 +25,7 @@ FROM harbor.naivehero.top:8443/baseimages/linuxserver/webtop:zino-kde-custom
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     ca-certificates gnupg curl git jq python3 python3-pip gosu \
-    chromium fonts-liberation fonts-noto-cjk fonts-noto-color-emoji \
-    libnss3 libatk-bridge2.0-0 libgtk-3-0 && \
+    fonts-noto-cjk fonts-noto-color-emoji && \
     # 1. 注入 Node.js 22 源并安装
     curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
     apt-get install -y --no-install-recommends nodejs && \
@@ -55,9 +54,11 @@ RUN apt-get update && \
     /usr/share/doc \
     /usr/share/man
 
-# 💡 提示: 环境变量告知 Playwright 使用系统路径，不要再去下载浏览器
+# 💡 提示: 环境变量告知 Playwright 使用系统 Chromium，不要自动下载浏览器
+# PLAYWRIGHT_BROWSERS_PATH 必须是目录，PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH 直接指定可执行文件（双保险）
 ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 \
-    PLAYWRIGHT_BROWSERS_PATH=/usr/bin/chromium
+    PLAYWRIGHT_BROWSERS_PATH=/usr/bin \
+    PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium
 
 # -----------------------------------------------------------------------------
 # 第三步: 准备自动化部署脚本与工作区模板
