@@ -35,10 +35,11 @@ def sync():
                 "plugins": {"entries": {}}
             }
 
-        # --- 1. 模型提供商同步 (仅在环境变量存在或首次启动时应用) ---
+        # --- 1. 模型提供商同步 (绕过 "default" 关键字 Bug) ---
+        provider_id = 'openai-proxy'
         has_model_env = any(k in env for k in ['API_KEY', 'BASE_URL', 'MODEL_ID'])
         if has_model_env or is_first_run:
-            p = ensure_path(config, ['models', 'providers', 'default'])
+            p = ensure_path(config, ['models', 'providers', provider_id])
             if 'API_KEY' in env: p['apiKey'] = env['API_KEY']
             elif is_first_run: p['apiKey'] = 'sk-your-key-here'
             
@@ -60,9 +61,10 @@ def sync():
                     m_obj["contextWindow"] = int(env.get('CONTEXT_WINDOW', m_obj.get('contextWindow', 128000)))
                     m_obj["maxTokens"] = int(env.get('MAX_TOKENS', m_obj.get('maxTokens', 4096)))
                 p['models'] = mlist
-                primary_id = f"default/{m_ids[0].split('/')[-1]}"
+                primary_id = f"{provider_id}/{m_ids[0].split('/')[-1]}"
                 ensure_path(config, ['agents', 'defaults', 'model'])['primary'] = primary_id
-            print("✅ [Bridge] 模型提供商配置已同步")
+            print(f"✅ [Bridge] 模型路由已锁定到安全通道: {primary_id}")
+
 
         # --- 2. 网关安全与认证 (仅在环境变量存在或首次启动时应用) ---
         has_gw_env = any(k in env for k in ['OPENCLAW_GATEWAY_TOKEN', 'OPENCLAW_GATEWAY_BIND', 'OPENCLAW_GATEWAY_PORT'])
