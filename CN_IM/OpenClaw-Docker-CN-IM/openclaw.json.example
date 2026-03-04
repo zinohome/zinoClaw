@@ -1,222 +1,55 @@
 {
   "meta": {
-    "lastTouchedVersion": "2026.2.14",
-    "lastTouchedAt": "2026-02-14T13:59:00.000Z"
-  },
-  "update": {
-    "checkOnStart": false
-  },
-  "browser": {
-    "headless": true,
-    "noSandbox": true,
-    "defaultProfile": "openclaw",
-    "executablePath": "/usr/bin/chromium"
-  },
-  "models": {
-    "mode": "merge",
-    "providers": {
-      "default": {
-        "baseUrl": "http://xxxxx/v1",
-        "apiKey": "123456",
-        "api": "openai-completions",
-        "models": [
-          {
-            "id": "model id",
-            "name": "model name",
-            "reasoning": false,
-            "input": [
-              "text",
-              "image"
-            ],
-            "cost": {
-              "input": 0,
-              "output": 0,
-              "cacheRead": 0,
-              "cacheWrite": 0
-            },
-            "contextWindow": 200000,
-            "maxTokens": 8192
-          }
-        ]
-      },
-      "openai-example": {
-        "baseUrl": "http://localhost:3000/v1",
-        "apiKey": "your-api-key",
-        "api": "openai-completions",
-        "models": [
-          {
-            "id": "gemini-3-flash-preview",
-            "name": "Gemini 3 Flash Preview",
-            "reasoning": false,
-            "input": ["text", "image"],
-            "cost": {
-              "input": 0,
-              "output": 0,
-              "cacheRead": 0,
-              "cacheWrite": 0
-            },
-            "contextWindow": 1000000,
-            "maxTokens": 8192
-          }
-        ]
-      },
-      "claude-example": {
-        "baseUrl": "http://localhost:3000",
-        "apiKey": "your-api-key",
-        "api": "anthropic-messages",
-        "models": [
-          {
-            "id": "claude-sonnet-4-5",
-            "name": "Claude Sonnet 4.5",
-            "reasoning": false,
-            "input": ["text", "image"],
-            "cost": {
-              "input": 0,
-              "output": 0,
-              "cacheRead": 0,
-              "cacheWrite": 0
-            },
-            "contextWindow": 200000,
-            "maxTokens": 8192
-          }
-        ]
-      }
-    }
+    "lastTouchedVersion": "2026.3.2",
+    "lastTouchedAt": "2026-03-04T03:01:41.127279Z"
   },
   "agents": {
     "defaults": {
-      "model": {
-        "primary": "default/gemini-3-flash-preview"
-      },
-      "imageModel": {
-        "primary": "default/gemini-3-flash-preview"
-      },
-      "workspace": "/home/node/.openclaw/workspace",
       "compaction": {
         "mode": "safeguard"
       },
-      "elevatedDefault": "full",
-      "maxConcurrent": 4,
-      "subagents": {
-        "maxConcurrent": 8
+      "workspace": "/config/.openclaw/workspace",
+      "model": {
+        "primary": "newapi/gpt-4.1"
+      },
+      "heartbeat": {
+        "every": "30m",
+        "activeHours": "08:00-23:00"
       }
-    }
-  },
-  "messages": {
-    "ackReactionScope": "group-mentions",
-    "tts": {
-      "edge": {
-        "voice": "zh-CN-XiaoxiaoNeural"
-      }
-    }
-  },
-  "commands": {
-    "native": "auto",
-    "nativeSkills": "auto"
-  },
-  "channels": {
-    "telegram": {
-      "dmPolicy": "pairing",
-      "botToken": "your-token",
-      "groupPolicy": "allowlist",
-      "streamMode": "partial"
-    },
-    "feishu": {
-      "enabled": true,
-      "dmPolicy": "pairing",
-      "groupPolicy": "open",
-      "accounts": {
-        "main": {
-          "appId": "your-app-id",
-          "appSecret": "your-app-secret",
-          "botName": "OpenClaw Bot"
-        }
-      }
-    },
-    "dingtalk": {
-      "enabled": true,
-      "clientId": "dingxxxxxx",
-      "clientSecret": "your-app-secret",
-      "robotCode": "dingxxxxxx",
-      "corpId": "dingxxxxxx",
-      "agentId": "123456789",
-      "dmPolicy": "open",
-      "allowFrom": ["*"],
-      "groupPolicy": "open",
-      "messageType": "markdown",
-      "debug": false
-    },
-    "qqbot": {
-      "enabled": true,
-      "appId": "your-qqbot-app-id",
-      "clientSecret": "your-qqbot-client-secret"
-    },
-    "wecom": {
-      "enabled": true,
-      "token": "your-token",
-      "encodingAesKey": "your-aes-key"
     }
   },
   "gateway": {
-    "port": 18789,
     "mode": "local",
+    "port": 18789,
     "bind": "lan",
+    "auth": {
+      "mode": "token",
+      "token": "your-gateway-token"
+    },
     "controlUi": {
       "allowInsecureAuth": true,
-      "dangerouslyDisableDeviceAuth": false,
+      "dangerouslyAllowHostHeaderOriginFallback": true,
+      "dangerouslyDisableDeviceAuth": true,
       "allowedOrigins": [
         "http://localhost"
       ]
-    },
-    "auth": {
-      "mode": "token",
-      "token": "dev-token-123456"
+    }
+  },
+  "channels": {
+    "slack": {
+      "mode": "socket",
+      "enabled": true,
+      "botToken": "xoxb-your-bot-token",
+      "appToken": "xapp-your-app-token",
+      "groupPolicy": "open",
+      "dmPolicy": "allowlist",
+      "allowFrom": [
+        "U_YOUR_SLACK_USER_ID"
+      ]
     }
   },
   "plugins": {
-    "entries": {
-      "telegram": {
-        "enabled": true
-      },
-      "feishu": {
-        "enabled": true
-      },
-      "dingtalk": {
-        "enabled": true
-      },
-      "wecom": {
-        "enabled": true
-      },
-      "qqbot": {
-        "enabled": true
-      }
-    },
-    "installs": {
-      "feishu": {
-        "source": "npm",
-        "spec": "@openclaw/feishu",
-        "installPath": "/home/node/.openclaw/extensions/feishu",
-        "installedAt": "2026-01-31T05:53:18.535Z"
-      },
-      "dingtalk": {
-        "source": "npm",
-        "spec": "https://github.com/soimy/clawdbot-channel-dingtalk.git",
-        "installPath": "/home/node/.openclaw/extensions/dingtalk",
-        "installedAt": "2026-02-01T04:23:35.823Z"
-      },
-      "wecom": {
-        "source": "npm",
-        "spec": "@sunnoy/wecom",
-        "installPath": "/home/node/.openclaw/extensions/wecom",
-        "installedAt": "2026-02-01T05:18:35.770Z"
-      },
-      "qqbot": {
-        "source": "path",
-        "sourcePath": "/home/node/.openclaw/qqbot",
-        "installPath": "/home/node/.openclaw/extensions/qqbot",
-        "installedAt": "2026-02-01T06:50:54.140Z"
-      }
-    }
+    "entries": {}
   },
   "memory": {
     "backend": "qmd",
@@ -224,11 +57,37 @@
       "command": "/usr/local/bin/qmd",
       "paths": [
         {
-          "path": "/home/node/.openclaw/workspace",
+          "path": "/config/.openclaw/workspace",
           "name": "workspace",
           "pattern": "**/*.md"
         }
       ]
+    }
+  },
+  "browser": {
+    "executablePath": "/usr/bin/chromium",
+    "headless": true,
+    "noSandbox": true
+  },
+  "models": {
+    "mode": "merge",
+    "providers": {
+      "newapi": {
+        "apiKey": "sk-your-api-key",
+        "baseUrl": "https://your-api-base-url/v1",
+        "api": "openai-completions",
+        "models": [
+          {
+            "id": "gpt-4.1",
+            "name": "gpt-4.1",
+            "input": [
+              "text"
+            ],
+            "contextWindow": 128000,
+            "maxTokens": 128000
+          }
+        ]
+      }
     }
   }
 }
