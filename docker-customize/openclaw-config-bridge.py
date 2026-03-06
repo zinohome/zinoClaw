@@ -96,9 +96,14 @@ def sync():
         qmd['command'] = "/usr/local/bin/qmd"
         qmd['paths'] = [{"path": "/config/.openclaw/workspace", "name": "workspace", "pattern": "**/*.md"}]
 
-        # --- 4. 浏览器环境强制修正 (确保护箱即用) ---
+        # --- 4. 浏览器环境强制修正 (确保护箱即用，但不覆盖用户自定义) ---
         browser = ensure_path(config, ['browser'])
-        browser.update({"executablePath": "/usr/bin/chromium", "headless": True, "noSandbox": True})
+        if 'executablePath' not in browser:
+            browser['executablePath'] = "/usr/bin/chromium"
+        if 'headless' not in browser:
+            browser['headless'] = True
+        if 'noSandbox' not in browser:
+            browser['noSandbox'] = True
 
         # --- 5. 最终保存 ---
         ensure_path(config, ['meta'])['lastTouchedAt'] = datetime.utcnow().isoformat() + 'Z'
