@@ -80,7 +80,8 @@ def sync():
             
             cui = ensure_path(gw, ['controlUi'])
             cui['allowInsecureAuth'] = env.get('OPENCLAW_GATEWAY_ALLOW_INSECURE_AUTH', 'true' if is_first_run else str(cui.get('allowInsecureAuth', 'true'))).lower() == 'true'
-            cui['dangerouslyAllowHostHeaderOriginFallback'] = True
+            if 'dangerouslyAllowHostHeaderOriginFallback' not in cui:
+                cui['dangerouslyAllowHostHeaderOriginFallback'] = True
             cui['dangerouslyDisableDeviceAuth'] = env.get('OPENCLAW_GATEWAY_DANGEROUSLY_DISABLE_DEVICE_AUTH', 'true' if is_first_run else str(cui.get('dangerouslyDisableDeviceAuth', 'true'))).lower() == 'true'
             
             if 'OPENCLAW_GATEWAY_ALLOWED_ORIGINS' in env or is_first_run:
@@ -88,13 +89,20 @@ def sync():
                 if origins_raw: cui['allowedOrigins'] = [x.strip() for x in origins_raw.split(',') if x.strip()]
             print("✅ [Bridge] 网关配置已同步")
 
-        # --- 3. 记忆与工作区增强 (核心路径通常是固定的) ---
-        config['agents']['defaults']['workspace'] = "/config/.openclaw/workspace"
+        # --- 3. 记忆与工作区增强 (核心路径通常是固定的，但不覆盖用户自定义) ---
+        defaults = ensure_path(config, ['agents', 'defaults'])
+        if 'workspace' not in defaults:
+            defaults['workspace'] = "/config/.openclaw/workspace"
+            
         memory = ensure_path(config, ['memory'])
-        memory['backend'] = "qmd"
+        if 'backend' not in memory:
+            memory['backend'] = "qmd"
+            
         qmd = ensure_path(memory, ['qmd'])
-        qmd['command'] = "/usr/local/bin/qmd"
-        qmd['paths'] = [{"path": "/config/.openclaw/workspace", "name": "workspace", "pattern": "**/*.md"}]
+        if 'command' not in qmd:
+            qmd['command'] = "/usr/local/bin/qmd"
+        if 'paths' not in qmd:
+            qmd['paths'] = [{"path": "/config/.openclaw/workspace", "name": "workspace", "pattern": "**/*.md"}]
 
         # --- 4. 浏览器环境强制修正 (确保护箱即用，但不覆盖用户自定义) ---
         browser = ensure_path(config, ['browser'])
