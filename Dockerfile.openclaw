@@ -45,7 +45,12 @@ RUN apt-get update && \
     /usr/local/bin/bun install -g @tobilu/qmd && \
     # 4. 安装 uv（Python 极速包管理器，轻量 ~10MB，供 Python 类 Skill CLI 使用）
     curl -LsSf https://astral.sh/uv/install.sh | UV_INSTALL_DIR=/usr/local/bin sh && \
-    # 5. 【关键瘦身】清理所有包管理器缓存、临时文件和浏览器冗余包
+    uv tool install nano-pdf && \
+    # 5. 安装各 OpenClaw Skills 所需的底层依赖与全局 CLI
+    apt-get install -y --no-install-recommends poppler-utils && \
+    npm install -g agent-browser mcporter @steipete/summarize && \
+    agent-browser install && \
+    # 6. 【关键瘦身】清理所有包管理器缓存、临时文件和浏览器冗余包
     npm cache clean --force && \
     apt-get purge -y --auto-remove && \
     apt-get clean && \
@@ -66,9 +71,14 @@ ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 \
 # 第三步: 准备自动化部署脚本与工作区模板
 # -----------------------------------------------------------------------------
 
-# 复制工作区模板和配置桥接脚本到镜像
+# 复制工作区模板、配置桥接脚本以及预置的 Skills 到镜像
 COPY docker-customize/openclaw-workspace/ /defaults/openclaw-workspace/
+COPY skills/ /defaults/openclaw-workspace/skills/
 COPY docker-customize/openclaw-config-bridge.py /usr/local/bin/openclaw-config-bridge.py
+
+# 注册本地 Skills 的命令环境 (ai-humanizer, free-ride)
+RUN cd /defaults/openclaw-workspace/skills/ai-humanizer && npm install && npm install -g . && \
+    cd /defaults/openclaw-workspace/skills/free-ride && pip install -e .
 
 # -----------------------------------------------------------------------------
 # 第三步: 注册 s6-overlay 服务 (OpenClaw 初始化与 Gateway)
