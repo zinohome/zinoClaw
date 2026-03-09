@@ -3,12 +3,15 @@
     "_version": "1.0.0",
     "_updated": "2026-03-08",
     "meta": {
-        "lastTouchedVersion": "2026.3.0"
+        "lastTouchedVersion": "2026.3.2",
+        "lastTouchedAt": "2026-03-07T13:15:47.139874Z"
     },
     "browser": {
         "headless": true,
         "noSandbox": true,
-        "executablePath": "/usr/bin/google-chrome-stable"
+        "executablePath": "/usr/bin/chromium",
+        "enabled": true,
+        "defaultProfile": "openclaw"
     },
     "memory": {
         "backend": "qmd",
@@ -31,50 +34,60 @@
             "accounts": {
                 "vera": {
                     "_name": "Vera — 首席助理",
-                    "appToken": "xapp-REPLACE-VERA-APP-TOKEN",
-                    "botToken": "xoxb-REPLACE-VERA-BOT-TOKEN"
+                    "appToken": "xapp-REPLACE-APP-TOKEN",
+                    "botToken": "xoxb-REPLACE-BOT-TOKEN"
                 },
                 "dev-lead": {
                     "_name": "开远 — 产品开发 Lead",
-                    "appToken": "xapp-REPLACE-DEV-LEAD-APP-TOKEN",
-                    "botToken": "xoxb-REPLACE-DEV-LEAD-BOT-TOKEN"
+                    "appToken": "xapp-REPLACE-APP-TOKEN",
+                    "botToken": "xoxb-REPLACE-BOT-TOKEN"
                 },
                 "dev-pm": {
                     "_name": "开策 — 产品经理",
-                    "appToken": "xapp-REPLACE-DEV-PM-APP-TOKEN",
-                    "botToken": "xoxb-REPLACE-DEV-PM-BOT-TOKEN"
+                    "appToken": "xapp-REPLACE-APP-TOKEN",
+                    "botToken": "xoxb-REPLACE-BOT-TOKEN"
                 },
                 "dev-eng": {
                     "_name": "开程 — 全栈工程师",
-                    "appToken": "xapp-REPLACE-DEV-ENG-APP-TOKEN",
-                    "botToken": "xoxb-REPLACE-DEV-ENG-BOT-TOKEN"
+                    "appToken": "xapp-REPLACE-APP-TOKEN",
+                    "botToken": "xoxb-REPLACE-BOT-TOKEN"
                 },
                 "dev-qa": {
                     "_name": "开验 — 质量官",
-                    "appToken": "xapp-REPLACE-DEV-QA-APP-TOKEN",
-                    "botToken": "xoxb-REPLACE-DEV-QA-BOT-TOKEN"
+                    "appToken": "xapp-REPLACE-APP-TOKEN",
+                    "botToken": "xoxb-REPLACE-BOT-TOKEN"
                 },
                 "res-lead": {
                     "_name": "博远 — 研究咨询 Lead",
-                    "appToken": "xapp-REPLACE-RES-LEAD-APP-TOKEN",
-                    "botToken": "xoxb-REPLACE-RES-LEAD-BOT-TOKEN"
+                    "appToken": "xapp-REPLACE-APP-TOKEN",
+                    "botToken": "xoxb-REPLACE-BOT-TOKEN"
                 },
                 "res-deep": {
                     "_name": "博研 — 深度研究员",
-                    "appToken": "xapp-REPLACE-RES-DEEP-APP-TOKEN",
-                    "botToken": "xoxb-REPLACE-RES-DEEP-BOT-TOKEN"
+                    "appToken": "xapp-REPLACE-APP-TOKEN",
+                    "botToken": "xoxb-REPLACE-BOT-TOKEN"
                 },
                 "res-insight": {
                     "_name": "博析 — 行业分析师",
-                    "appToken": "xapp-REPLACE-RES-INSIGHT-APP-TOKEN",
-                    "botToken": "xoxb-REPLACE-RES-INSIGHT-BOT-TOKEN"
+                    "appToken": "xapp-REPLACE-APP-TOKEN",
+                    "botToken": "xoxb-REPLACE-BOT-TOKEN"
                 },
                 "res-write": {
                     "_name": "博文 — 内容撰稿人",
-                    "appToken": "xapp-REPLACE-RES-WRITE-APP-TOKEN",
-                    "botToken": "xoxb-REPLACE-RES-WRITE-BOT-TOKEN"
+                    "appToken": "xapp-REPLACE-APP-TOKEN",
+                    "botToken": "xoxb-REPLACE-BOT-TOKEN"
                 }
-            }
+            },
+            "mode": "socket",
+            "webhookPath": "/slack/events",
+            "botToken": "xoxb-REPLACE-BOT-TOKEN",
+            "appToken": "xapp-REPLACE-APP-TOKEN",
+            "userTokenReadOnly": true,
+            "streaming": "partial",
+            "nativeStreaming": true,
+            "allowFrom": [
+                "U0AK7J5KX0Q"
+            ]
         }
     },
     "agents": {
@@ -86,6 +99,20 @@
             "maxConcurrent": 4,
             "subagents": {
                 "maxConcurrent": 8
+            },
+            "model": {
+                "primary": "ollma/qwen3.5:397b-cloud",
+                "fallbacks": [
+                    "newapi/gpt-4.1"
+                ]
+            },
+            "workspace": "/config/.openclaw/workspace",
+            "heartbeat": {
+                "every": "30m",
+                "activeHours": {
+                    "start": "08:00",
+                    "end": "23:00"
+                }
             }
         },
         "instances": {
@@ -214,16 +241,130 @@
         "bind": "lan",
         "auth": {
             "mode": "token",
-            "token": "REPLACE-YOUR-GATEWAY-TOKEN"
+            "token": "REPLACE-TOKEN"
         },
         "controlUi": {
             "allowInsecureAuth": true,
             "dangerouslyDisableDeviceAuth": true,
-            "dangerouslyAllowHostHeaderOriginFallback": true
+            "dangerouslyAllowHostHeaderOriginFallback": true,
+            "allowedOrigins": [
+                "http://localhost"
+            ]
         }
     },
     "plugins": {
         "entries": {},
         "installs": {}
+    },
+    "auth": {
+        "profiles": {
+            "github-copilot:zinoclaw": {
+                "provider": "github-copilot",
+                "mode": "token"
+            }
+        }
+    },
+    "models": {
+        "mode": "merge",
+        "providers": {
+            "newapi": {
+                "baseUrl": "https://newapi.naivehero.top/v1",
+                "apiKey": "sk-REPLACE-API-KEY",
+                "api": "openai-completions",
+                "models": [
+                    {
+                        "id": "gpt-4.1",
+                        "name": "gpt-4.1",
+                        "input": [
+                            "text"
+                        ],
+                        "contextWindow": 128000,
+                        "maxTokens": 128000
+                    },
+                    {
+                        "id": "gpt-4o",
+                        "name": "gpt-4o",
+                        "input": [
+                            "text"
+                        ],
+                        "contextWindow": 16384,
+                        "maxTokens": 16384
+                    }
+                ]
+            },
+            "ollama": {
+                "baseUrl": "http://192.168.66.163:11434/v1",
+                "apiKey": "sk-REPLACE-API-KEY",
+                "api": "openai-completions",
+                "models": [
+                    {
+                        "id": "qwen3.5:cloud",
+                        "name": "Qwen3.5 Cloud",
+                        "input": [
+                            "text"
+                        ],
+                        "contextWindow": 32768,
+                        "maxTokens": 8192
+                    },
+                    {
+                        "id": "qwen3.5:397b-cloud",
+                        "name": "Qwen3.5 397b Cloud",
+                        "input": [
+                            "text"
+                        ],
+                        "contextWindow": 32768,
+                        "maxTokens": 8192
+                    }
+                ]
+            }
+        }
+    },
+    "tools": {
+        "deny": [
+            "web_search"
+        ]
+    },
+    "commands": {
+        "native": "auto",
+        "nativeSkills": "auto",
+        "restart": true,
+        "ownerDisplay": "raw"
+    },
+    "skills": {
+        "entries": {
+            "freeride": {
+                "enabled": true
+            },
+            "Agent Browser": {
+                "enabled": true
+            },
+            "self-improvement": {
+                "enabled": true
+            },
+            "proactive-agent": {
+                "enabled": true
+            },
+            "pdf-extract": {
+                "enabled": true
+            },
+            "markdown-converter": {
+                "enabled": true
+            },
+            "frontend-design": {
+                "enabled": true
+            },
+            "find-skills": {
+                "enabled": true
+            },
+            "clawddocs": {
+                "enabled": true
+            },
+            "exa-web-search-free": {
+                "enabled": true
+            },
+            "humanizer": {
+                "enabled": true
+            }
+        }
     }
 }
