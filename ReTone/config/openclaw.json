@@ -1,0 +1,229 @@
+{
+    "_comment": "芮通科技 ReTone Tech — OpenClaw 多智能体路由配置",
+    "_version": "1.0.0",
+    "_updated": "2026-03-08",
+    "meta": {
+        "lastTouchedVersion": "2026.3.0"
+    },
+    "browser": {
+        "headless": true,
+        "noSandbox": true,
+        "executablePath": "/usr/bin/google-chrome-stable"
+    },
+    "memory": {
+        "backend": "qmd",
+        "qmd": {
+            "command": "/usr/local/bin/qmd",
+            "paths": [
+                {
+                    "path": "/config/.openclaw/workspace",
+                    "name": "workspace",
+                    "pattern": "**/*.md"
+                }
+            ]
+        }
+    },
+    "channels": {
+        "slack": {
+            "enabled": true,
+            "dmPolicy": "allowlist",
+            "groupPolicy": "open",
+            "accounts": {
+                "vera": {
+                    "_name": "Vera — 首席助理",
+                    "appToken": "xapp-REPLACE-VERA-APP-TOKEN",
+                    "botToken": "xoxb-REPLACE-VERA-BOT-TOKEN"
+                },
+                "dev-lead": {
+                    "_name": "开远 — 产品开发 Lead",
+                    "appToken": "xapp-REPLACE-DEV-LEAD-APP-TOKEN",
+                    "botToken": "xoxb-REPLACE-DEV-LEAD-BOT-TOKEN"
+                },
+                "dev-pm": {
+                    "_name": "开策 — 产品经理",
+                    "appToken": "xapp-REPLACE-DEV-PM-APP-TOKEN",
+                    "botToken": "xoxb-REPLACE-DEV-PM-BOT-TOKEN"
+                },
+                "dev-eng": {
+                    "_name": "开程 — 全栈工程师",
+                    "appToken": "xapp-REPLACE-DEV-ENG-APP-TOKEN",
+                    "botToken": "xoxb-REPLACE-DEV-ENG-BOT-TOKEN"
+                },
+                "dev-qa": {
+                    "_name": "开验 — 质量官",
+                    "appToken": "xapp-REPLACE-DEV-QA-APP-TOKEN",
+                    "botToken": "xoxb-REPLACE-DEV-QA-BOT-TOKEN"
+                },
+                "res-lead": {
+                    "_name": "博远 — 研究咨询 Lead",
+                    "appToken": "xapp-REPLACE-RES-LEAD-APP-TOKEN",
+                    "botToken": "xoxb-REPLACE-RES-LEAD-BOT-TOKEN"
+                },
+                "res-deep": {
+                    "_name": "博研 — 深度研究员",
+                    "appToken": "xapp-REPLACE-RES-DEEP-APP-TOKEN",
+                    "botToken": "xoxb-REPLACE-RES-DEEP-BOT-TOKEN"
+                },
+                "res-insight": {
+                    "_name": "博析 — 行业分析师",
+                    "appToken": "xapp-REPLACE-RES-INSIGHT-APP-TOKEN",
+                    "botToken": "xoxb-REPLACE-RES-INSIGHT-BOT-TOKEN"
+                },
+                "res-write": {
+                    "_name": "博文 — 内容撰稿人",
+                    "appToken": "xapp-REPLACE-RES-WRITE-APP-TOKEN",
+                    "botToken": "xoxb-REPLACE-RES-WRITE-BOT-TOKEN"
+                }
+            }
+        }
+    },
+    "agents": {
+        "defaults": {
+            "compaction": {
+                "mode": "safeguard"
+            },
+            "elevatedDefault": "full",
+            "maxConcurrent": 4,
+            "subagents": {
+                "maxConcurrent": 8
+            }
+        },
+        "instances": {
+            "vera": {
+                "_name": "Vera — 首席助理",
+                "workspace": "/config/.openclaw/workspace",
+                "model": {
+                    "primary": "default/gpt-4o"
+                },
+                "bindings": [
+                    {
+                        "channel": "slack",
+                        "accountId": "vera"
+                    }
+                ]
+            },
+            "dev-lead": {
+                "_name": "开远 — 产品开发 Lead",
+                "workspace": "/config/.openclaw/dev-lead-workspace",
+                "model": {
+                    "primary": "default/claude-3-5-sonnet-20241022"
+                },
+                "bindings": [
+                    {
+                        "channel": "slack",
+                        "accountId": "dev-lead"
+                    }
+                ]
+            },
+            "dev-pm": {
+                "_name": "开策 — 产品经理",
+                "workspace": "/config/.openclaw/dev-pm-workspace",
+                "model": {
+                    "primary": "default/gpt-4o"
+                },
+                "bindings": [
+                    {
+                        "channel": "slack",
+                        "accountId": "dev-pm"
+                    }
+                ]
+            },
+            "dev-eng": {
+                "_name": "开程 — 全栈工程师",
+                "workspace": "/config/.openclaw/dev-eng-workspace",
+                "model": {
+                    "primary": "default/claude-3-5-sonnet-20241022"
+                },
+                "bindings": [
+                    {
+                        "channel": "slack",
+                        "accountId": "dev-eng"
+                    }
+                ]
+            },
+            "dev-qa": {
+                "_name": "开验 — 质量官",
+                "workspace": "/config/.openclaw/dev-qa-workspace",
+                "model": {
+                    "primary": "default/gpt-4o-mini"
+                },
+                "bindings": [
+                    {
+                        "channel": "slack",
+                        "accountId": "dev-qa"
+                    }
+                ]
+            },
+            "res-lead": {
+                "_name": "博远 — 研究咨询 Lead",
+                "workspace": "/config/.openclaw/res-lead-workspace",
+                "model": {
+                    "primary": "default/claude-3-5-sonnet-20241022"
+                },
+                "bindings": [
+                    {
+                        "channel": "slack",
+                        "accountId": "res-lead"
+                    }
+                ]
+            },
+            "res-deep": {
+                "_name": "博研 — 深度研究员",
+                "workspace": "/config/.openclaw/res-deep-workspace",
+                "model": {
+                    "primary": "default/gpt-4o"
+                },
+                "bindings": [
+                    {
+                        "channel": "slack",
+                        "accountId": "res-deep"
+                    }
+                ]
+            },
+            "res-insight": {
+                "_name": "博析 — 行业分析师",
+                "workspace": "/config/.openclaw/res-insight-workspace",
+                "model": {
+                    "primary": "default/gpt-4o"
+                },
+                "bindings": [
+                    {
+                        "channel": "slack",
+                        "accountId": "res-insight"
+                    }
+                ]
+            },
+            "res-write": {
+                "_name": "博文 — 内容撰稿人",
+                "workspace": "/config/.openclaw/res-write-workspace",
+                "model": {
+                    "primary": "default/claude-3-haiku-20240307"
+                },
+                "bindings": [
+                    {
+                        "channel": "slack",
+                        "accountId": "res-write"
+                    }
+                ]
+            }
+        }
+    },
+    "gateway": {
+        "mode": "local",
+        "port": 18789,
+        "bind": "lan",
+        "auth": {
+            "mode": "token",
+            "token": "REPLACE-YOUR-GATEWAY-TOKEN"
+        },
+        "controlUi": {
+            "allowInsecureAuth": true,
+            "dangerouslyDisableDeviceAuth": true,
+            "dangerouslyAllowHostHeaderOriginFallback": true
+        }
+    },
+    "plugins": {
+        "entries": {},
+        "installs": {}
+    }
+}
