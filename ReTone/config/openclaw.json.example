@@ -20,7 +20,47 @@
             "paths": [
                 {
                     "path": "/config/.openclaw/workspace",
-                    "name": "workspace",
+                    "name": "vera",
+                    "pattern": "**/*.md"
+                },
+                {
+                    "path": "/config/.openclaw/dev-lead-workspace",
+                    "name": "dev-lead",
+                    "pattern": "**/*.md"
+                },
+                {
+                    "path": "/config/.openclaw/dev-pm-workspace",
+                    "name": "dev-pm",
+                    "pattern": "**/*.md"
+                },
+                {
+                    "path": "/config/.openclaw/dev-eng-workspace",
+                    "name": "dev-eng",
+                    "pattern": "**/*.md"
+                },
+                {
+                    "path": "/config/.openclaw/dev-qa-workspace",
+                    "name": "dev-qa",
+                    "pattern": "**/*.md"
+                },
+                {
+                    "path": "/config/.openclaw/res-lead-workspace",
+                    "name": "res-lead",
+                    "pattern": "**/*.md"
+                },
+                {
+                    "path": "/config/.openclaw/res-deep-workspace",
+                    "name": "res-deep",
+                    "pattern": "**/*.md"
+                },
+                {
+                    "path": "/config/.openclaw/res-insight-workspace",
+                    "name": "res-insight",
+                    "pattern": "**/*.md"
+                },
+                {
+                    "path": "/config/.openclaw/res-write-workspace",
+                    "name": "res-write",
                     "pattern": "**/*.md"
                 }
             ]
@@ -101,7 +141,7 @@
                 "maxConcurrent": 8
             },
             "model": {
-                "primary": "ollma/qwen3.5:397b-cloud",
+                "primary": "github-copilot/gpt-4.1",
                 "fallbacks": [
                     "newapi/gpt-4.1"
                 ]
@@ -120,7 +160,10 @@
                 "_name": "Vera — 首席助理",
                 "workspace": "/config/.openclaw/workspace",
                 "model": {
-                    "primary": "default/gpt-4o"
+                    "primary": "github-copilot/gpt-4.1",
+                    "fallbacks": [
+                        "newapi/gpt-4.1"
+                    ]
                 },
                 "bindings": [
                     {
@@ -133,7 +176,10 @@
                 "_name": "开远 — 产品开发 Lead",
                 "workspace": "/config/.openclaw/dev-lead-workspace",
                 "model": {
-                    "primary": "default/claude-3-5-sonnet-20241022"
+                    "primary": "github-copilot/gpt-4.1",
+                    "fallbacks": [
+                        "newapi/gpt-4.1"
+                    ]
                 },
                 "bindings": [
                     {
@@ -146,7 +192,10 @@
                 "_name": "开策 — 产品经理",
                 "workspace": "/config/.openclaw/dev-pm-workspace",
                 "model": {
-                    "primary": "default/gpt-4o"
+                    "primary": "github-copilot/gpt-4.1",
+                    "fallbacks": [
+                        "newapi/gpt-4.1"
+                    ]
                 },
                 "bindings": [
                     {
@@ -159,7 +208,10 @@
                 "_name": "开程 — 全栈工程师",
                 "workspace": "/config/.openclaw/dev-eng-workspace",
                 "model": {
-                    "primary": "default/claude-3-5-sonnet-20241022"
+                    "primary": "github-copilot/gpt-4.1",
+                    "fallbacks": [
+                        "newapi/gpt-4.1"
+                    ]
                 },
                 "bindings": [
                     {
@@ -172,7 +224,10 @@
                 "_name": "开验 — 质量官",
                 "workspace": "/config/.openclaw/dev-qa-workspace",
                 "model": {
-                    "primary": "default/gpt-4o-mini"
+                    "primary": "github-copilot/gpt-4.1",
+                    "fallbacks": [
+                        "newapi/gpt-4.1"
+                    ]
                 },
                 "bindings": [
                     {
@@ -185,7 +240,10 @@
                 "_name": "博远 — 研究咨询 Lead",
                 "workspace": "/config/.openclaw/res-lead-workspace",
                 "model": {
-                    "primary": "default/claude-3-5-sonnet-20241022"
+                    "primary": "github-copilot/gpt-4.1",
+                    "fallbacks": [
+                        "newapi/gpt-4.1"
+                    ]
                 },
                 "bindings": [
                     {
@@ -198,7 +256,10 @@
                 "_name": "博研 — 深度研究员",
                 "workspace": "/config/.openclaw/res-deep-workspace",
                 "model": {
-                    "primary": "default/gpt-4o"
+                    "primary": "github-copilot/gpt-4.1",
+                    "fallbacks": [
+                        "newapi/gpt-4.1"
+                    ]
                 },
                 "bindings": [
                     {
@@ -211,7 +272,10 @@
                 "_name": "博析 — 行业分析师",
                 "workspace": "/config/.openclaw/res-insight-workspace",
                 "model": {
-                    "primary": "default/gpt-4o"
+                    "primary": "github-copilot/gpt-4.1",
+                    "fallbacks": [
+                        "newapi/gpt-4.1"
+                    ]
                 },
                 "bindings": [
                     {
@@ -224,7 +288,10 @@
                 "_name": "博文 — 内容撰稿人",
                 "workspace": "/config/.openclaw/res-write-workspace",
                 "model": {
-                    "primary": "default/claude-3-haiku-20240307"
+                    "primary": "github-copilot/gpt-4.1",
+                    "fallbacks": [
+                        "newapi/gpt-4.1"
+                    ]
                 },
                 "bindings": [
                     {
