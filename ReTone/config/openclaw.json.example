@@ -1,7 +1,4 @@
 {
-    "_comment": "芮通科技 ReTone Tech — OpenClaw 多智能体路由配置",
-    "_version": "1.0.0",
-    "_updated": "2026-03-08",
     "meta": {
         "lastTouchedVersion": "2026.3.2",
         "lastTouchedAt": "2026-03-07T13:15:47.139874Z"
@@ -73,47 +70,38 @@
             "groupPolicy": "open",
             "accounts": {
                 "vera": {
-                    "_name": "Vera — 首席助理",
                     "appToken": "xapp-REPLACE-APP-TOKEN",
                     "botToken": "xoxb-REPLACE-BOT-TOKEN"
                 },
                 "dev-lead": {
-                    "_name": "开远 — 产品开发 Lead",
                     "appToken": "xapp-REPLACE-APP-TOKEN",
                     "botToken": "xoxb-REPLACE-BOT-TOKEN"
                 },
                 "dev-pm": {
-                    "_name": "开策 — 产品经理",
                     "appToken": "xapp-REPLACE-APP-TOKEN",
                     "botToken": "xoxb-REPLACE-BOT-TOKEN"
                 },
                 "dev-eng": {
-                    "_name": "开程 — 全栈工程师",
                     "appToken": "xapp-REPLACE-APP-TOKEN",
                     "botToken": "xoxb-REPLACE-BOT-TOKEN"
                 },
                 "dev-qa": {
-                    "_name": "开验 — 质量官",
                     "appToken": "xapp-REPLACE-APP-TOKEN",
                     "botToken": "xoxb-REPLACE-BOT-TOKEN"
                 },
                 "res-lead": {
-                    "_name": "博远 — 研究咨询 Lead",
                     "appToken": "xapp-REPLACE-APP-TOKEN",
                     "botToken": "xoxb-REPLACE-BOT-TOKEN"
                 },
                 "res-deep": {
-                    "_name": "博研 — 深度研究员",
                     "appToken": "xapp-REPLACE-APP-TOKEN",
                     "botToken": "xoxb-REPLACE-BOT-TOKEN"
                 },
                 "res-insight": {
-                    "_name": "博析 — 行业分析师",
                     "appToken": "xapp-REPLACE-APP-TOKEN",
                     "botToken": "xoxb-REPLACE-BOT-TOKEN"
                 },
                 "res-write": {
-                    "_name": "博文 — 内容撰稿人",
                     "appToken": "xapp-REPLACE-APP-TOKEN",
                     "botToken": "xoxb-REPLACE-BOT-TOKEN"
                 }
@@ -155,151 +143,140 @@
                 }
             }
         },
-        "instances": {
-            "vera": {
-                "_name": "Vera — 首席助理",
-                "workspace": "/config/.openclaw/workspace",
-                "model": {
-                    "primary": "github-copilot/gpt-4.1",
-                    "fallbacks": [
-                        "newapi/gpt-4.1"
-                    ]
-                },
-                "bindings": [
-                    {
-                        "channel": "slack",
-                        "accountId": "vera"
-                    }
+        "vera": {
+            "workspace": "/config/.openclaw/workspace",
+            "model": {
+                "primary": "github-copilot/gpt-4.1",
+                "fallbacks": [
+                    "newapi/gpt-4.1"
                 ]
             },
-            "dev-lead": {
-                "_name": "开远 — 产品开发 Lead",
-                "workspace": "/config/.openclaw/dev-lead-workspace",
-                "model": {
-                    "primary": "github-copilot/gpt-4.1",
-                    "fallbacks": [
-                        "newapi/gpt-4.1"
-                    ]
-                },
-                "bindings": [
-                    {
-                        "channel": "slack",
-                        "accountId": "dev-lead"
-                    }
+            "bindings": [
+                {
+                    "channel": "slack",
+                    "accountId": "vera"
+                }
+            ]
+        },
+        "dev-lead": {
+            "workspace": "/config/.openclaw/dev-lead-workspace",
+            "model": {
+                "primary": "github-copilot/gpt-4.1",
+                "fallbacks": [
+                    "newapi/gpt-4.1"
                 ]
             },
-            "dev-pm": {
-                "_name": "开策 — 产品经理",
-                "workspace": "/config/.openclaw/dev-pm-workspace",
-                "model": {
-                    "primary": "github-copilot/gpt-4.1",
-                    "fallbacks": [
-                        "newapi/gpt-4.1"
-                    ]
-                },
-                "bindings": [
-                    {
-                        "channel": "slack",
-                        "accountId": "dev-pm"
-                    }
+            "bindings": [
+                {
+                    "channel": "slack",
+                    "accountId": "dev-lead"
+                }
+            ]
+        },
+        "dev-pm": {
+            "workspace": "/config/.openclaw/dev-pm-workspace",
+            "model": {
+                "primary": "github-copilot/gpt-4.1",
+                "fallbacks": [
+                    "newapi/gpt-4.1"
                 ]
             },
-            "dev-eng": {
-                "_name": "开程 — 全栈工程师",
-                "workspace": "/config/.openclaw/dev-eng-workspace",
-                "model": {
-                    "primary": "github-copilot/gpt-4.1",
-                    "fallbacks": [
-                        "newapi/gpt-4.1"
-                    ]
-                },
-                "bindings": [
-                    {
-                        "channel": "slack",
-                        "accountId": "dev-eng"
-                    }
+            "bindings": [
+                {
+                    "channel": "slack",
+                    "accountId": "dev-pm"
+                }
+            ]
+        },
+        "dev-eng": {
+            "workspace": "/config/.openclaw/dev-eng-workspace",
+            "model": {
+                "primary": "github-copilot/gpt-4.1",
+                "fallbacks": [
+                    "newapi/gpt-4.1"
                 ]
             },
-            "dev-qa": {
-                "_name": "开验 — 质量官",
-                "workspace": "/config/.openclaw/dev-qa-workspace",
-                "model": {
-                    "primary": "github-copilot/gpt-4.1",
-                    "fallbacks": [
-                        "newapi/gpt-4.1"
-                    ]
-                },
-                "bindings": [
-                    {
-                        "channel": "slack",
-                        "accountId": "dev-qa"
-                    }
+            "bindings": [
+                {
+                    "channel": "slack",
+                    "accountId": "dev-eng"
+                }
+            ]
+        },
+        "dev-qa": {
+            "workspace": "/config/.openclaw/dev-qa-workspace",
+            "model": {
+                "primary": "github-copilot/gpt-4.1",
+                "fallbacks": [
+                    "newapi/gpt-4.1"
                 ]
             },
-            "res-lead": {
-                "_name": "博远 — 研究咨询 Lead",
-                "workspace": "/config/.openclaw/res-lead-workspace",
-                "model": {
-                    "primary": "github-copilot/gpt-4.1",
-                    "fallbacks": [
-                        "newapi/gpt-4.1"
-                    ]
-                },
-                "bindings": [
-                    {
-                        "channel": "slack",
-                        "accountId": "res-lead"
-                    }
+            "bindings": [
+                {
+                    "channel": "slack",
+                    "accountId": "dev-qa"
+                }
+            ]
+        },
+        "res-lead": {
+            "workspace": "/config/.openclaw/res-lead-workspace",
+            "model": {
+                "primary": "github-copilot/gpt-4.1",
+                "fallbacks": [
+                    "newapi/gpt-4.1"
                 ]
             },
-            "res-deep": {
-                "_name": "博研 — 深度研究员",
-                "workspace": "/config/.openclaw/res-deep-workspace",
-                "model": {
-                    "primary": "github-copilot/gpt-4.1",
-                    "fallbacks": [
-                        "newapi/gpt-4.1"
-                    ]
-                },
-                "bindings": [
-                    {
-                        "channel": "slack",
-                        "accountId": "res-deep"
-                    }
+            "bindings": [
+                {
+                    "channel": "slack",
+                    "accountId": "res-lead"
+                }
+            ]
+        },
+        "res-deep": {
+            "workspace": "/config/.openclaw/res-deep-workspace",
+            "model": {
+                "primary": "github-copilot/gpt-4.1",
+                "fallbacks": [
+                    "newapi/gpt-4.1"
                 ]
             },
-            "res-insight": {
-                "_name": "博析 — 行业分析师",
-                "workspace": "/config/.openclaw/res-insight-workspace",
-                "model": {
-                    "primary": "github-copilot/gpt-4.1",
-                    "fallbacks": [
-                        "newapi/gpt-4.1"
-                    ]
-                },
-                "bindings": [
-                    {
-                        "channel": "slack",
-                        "accountId": "res-insight"
-                    }
+            "bindings": [
+                {
+                    "channel": "slack",
+                    "accountId": "res-deep"
+                }
+            ]
+        },
+        "res-insight": {
+            "workspace": "/config/.openclaw/res-insight-workspace",
+            "model": {
+                "primary": "github-copilot/gpt-4.1",
+                "fallbacks": [
+                    "newapi/gpt-4.1"
                 ]
             },
-            "res-write": {
-                "_name": "博文 — 内容撰稿人",
-                "workspace": "/config/.openclaw/res-write-workspace",
-                "model": {
-                    "primary": "github-copilot/gpt-4.1",
-                    "fallbacks": [
-                        "newapi/gpt-4.1"
-                    ]
-                },
-                "bindings": [
-                    {
-                        "channel": "slack",
-                        "accountId": "res-write"
-                    }
+            "bindings": [
+                {
+                    "channel": "slack",
+                    "accountId": "res-insight"
+                }
+            ]
+        },
+        "res-write": {
+            "workspace": "/config/.openclaw/res-write-workspace",
+            "model": {
+                "primary": "github-copilot/gpt-4.1",
+                "fallbacks": [
+                    "newapi/gpt-4.1"
                 ]
-            }
+            },
+            "bindings": [
+                {
+                    "channel": "slack",
+                    "accountId": "res-write"
+                }
+            ]
         }
     },
     "gateway": {
