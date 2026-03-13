@@ -287,15 +287,7 @@
         "bind": "lan",
         "controlUi": {
             "allowedOrigins": [
-                "http://localhost",
-                "http://127.0.0.1",
-                "http://192.168.32.144:19789",
-                "http://192.168.32.144:18789",
-                "*",
-                "http://*",
-                "https://*",
-                "http://localhost:*",
-                "http://127.0.0.1:*"
+                "*"
             ],
             "dangerouslyAllowHostHeaderOriginFallback": true,
             "allowInsecureAuth": true,
@@ -304,9 +296,7 @@
         "auth": {
             "mode": "token",
             "token": "REPLACE-TOKEN"
-        },
-        "dangerouslyDisableDeviceAuth": true,
-        "allowInsecureAuth": true
+        }
     },
     "memory": {
         "backend": "qmd",
