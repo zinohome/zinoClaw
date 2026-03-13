@@ -287,7 +287,11 @@
         "bind": "lan",
         "controlUi": {
             "allowedOrigins": [
-                "http://localhost"
+                "http://localhost",
+                "http://127.0.0.1",
+                "http://192.168.32.144:19789",
+                "http://192.168.32.144:18789",
+                "*"
             ],
             "dangerouslyAllowHostHeaderOriginFallback": true,
             "allowInsecureAuth": true,
