@@ -1,304 +1,20 @@
 {
     "meta": {
-        "lastTouchedVersion": "2026.3.2",
-        "lastTouchedAt": "2026-03-07T13:15:47.139874Z"
+        "lastTouchedVersion": "2026.3.12",
+        "lastTouchedAt": "2026-03-13T08:54:07.207Z"
+    },
+    "wizard": {
+        "lastRunAt": "2026-03-13T08:54:07.168Z",
+        "lastRunVersion": "2026.3.12",
+        "lastRunCommand": "doctor",
+        "lastRunMode": "local"
     },
     "browser": {
+        "enabled": true,
+        "executablePath": "/usr/bin/chromium",
         "headless": true,
         "noSandbox": true,
-        "executablePath": "/usr/bin/chromium",
-        "enabled": true,
         "defaultProfile": "openclaw"
-    },
-    "memory": {
-        "backend": "qmd",
-        "qmd": {
-            "command": "/usr/local/bin/qmd",
-            "paths": [
-                {
-                    "path": "/config/.openclaw/workspace",
-                    "name": "vera",
-                    "pattern": "**/*.md"
-                },
-                {
-                    "path": "/config/.openclaw/dev-lead-workspace",
-                    "name": "dev-lead",
-                    "pattern": "**/*.md"
-                },
-                {
-                    "path": "/config/.openclaw/dev-pm-workspace",
-                    "name": "dev-pm",
-                    "pattern": "**/*.md"
-                },
-                {
-                    "path": "/config/.openclaw/dev-eng-workspace",
-                    "name": "dev-eng",
-                    "pattern": "**/*.md"
-                },
-                {
-                    "path": "/config/.openclaw/dev-qa-workspace",
-                    "name": "dev-qa",
-                    "pattern": "**/*.md"
-                },
-                {
-                    "path": "/config/.openclaw/res-lead-workspace",
-                    "name": "res-lead",
-                    "pattern": "**/*.md"
-                },
-                {
-                    "path": "/config/.openclaw/res-deep-workspace",
-                    "name": "res-deep",
-                    "pattern": "**/*.md"
-                },
-                {
-                    "path": "/config/.openclaw/res-insight-workspace",
-                    "name": "res-insight",
-                    "pattern": "**/*.md"
-                },
-                {
-                    "path": "/config/.openclaw/res-write-workspace",
-                    "name": "res-write",
-                    "pattern": "**/*.md"
-                }
-            ]
-        }
-    },
-    "channels": {
-        "slack": {
-            "enabled": true,
-            "dmPolicy": "allowlist",
-            "groupPolicy": "open",
-            "accounts": {
-                "vera": {
-                    "appToken": "xapp-REPLACE-APP-TOKEN",
-                    "botToken": "xoxb-REPLACE-BOT-TOKEN"
-                },
-                "dev-lead": {
-                    "appToken": "xapp-REPLACE-APP-TOKEN",
-                    "botToken": "xoxb-REPLACE-BOT-TOKEN"
-                },
-                "dev-pm": {
-                    "appToken": "xapp-REPLACE-APP-TOKEN",
-                    "botToken": "xoxb-REPLACE-BOT-TOKEN"
-                },
-                "dev-eng": {
-                    "appToken": "xapp-REPLACE-APP-TOKEN",
-                    "botToken": "xoxb-REPLACE-BOT-TOKEN"
-                },
-                "dev-qa": {
-                    "appToken": "xapp-REPLACE-APP-TOKEN",
-                    "botToken": "xoxb-REPLACE-BOT-TOKEN"
-                },
-                "res-lead": {
-                    "appToken": "xapp-REPLACE-APP-TOKEN",
-                    "botToken": "xoxb-REPLACE-BOT-TOKEN"
-                },
-                "res-deep": {
-                    "appToken": "xapp-REPLACE-APP-TOKEN",
-                    "botToken": "xoxb-REPLACE-BOT-TOKEN"
-                },
-                "res-insight": {
-                    "appToken": "xapp-REPLACE-APP-TOKEN",
-                    "botToken": "xoxb-REPLACE-BOT-TOKEN"
-                },
-                "res-write": {
-                    "appToken": "xapp-REPLACE-APP-TOKEN",
-                    "botToken": "xoxb-REPLACE-BOT-TOKEN"
-                }
-            },
-            "mode": "socket",
-            "webhookPath": "/slack/events",
-            "botToken": "xoxb-REPLACE-BOT-TOKEN",
-            "appToken": "xapp-REPLACE-APP-TOKEN",
-            "userTokenReadOnly": true,
-            "streaming": "partial",
-            "nativeStreaming": true,
-            "allowFrom": [
-                "U0AK7J5KX0Q"
-            ]
-        }
-    },
-    "agents": {
-        "defaults": {
-            "compaction": {
-                "mode": "safeguard"
-            },
-            "elevatedDefault": "full",
-            "maxConcurrent": 4,
-            "subagents": {
-                "maxConcurrent": 8
-            },
-            "model": {
-                "primary": "github-copilot/gpt-4.1",
-                "fallbacks": [
-                    "newapi/gpt-4.1"
-                ]
-            },
-            "workspace": "/config/.openclaw/workspace",
-            "heartbeat": {
-                "every": "30m",
-                "activeHours": {
-                    "start": "08:00",
-                    "end": "23:00"
-                }
-            }
-        },
-        "vera": {
-            "workspace": "/config/.openclaw/workspace",
-            "model": {
-                "primary": "github-copilot/gpt-4.1",
-                "fallbacks": [
-                    "newapi/gpt-4.1"
-                ]
-            },
-            "bindings": [
-                {
-                    "channel": "slack",
-                    "accountId": "vera"
-                }
-            ]
-        },
-        "dev-lead": {
-            "workspace": "/config/.openclaw/dev-lead-workspace",
-            "model": {
-                "primary": "github-copilot/gpt-4.1",
-                "fallbacks": [
-                    "newapi/gpt-4.1"
-                ]
-            },
-            "bindings": [
-                {
-                    "channel": "slack",
-                    "accountId": "dev-lead"
-                }
-            ]
-        },
-        "dev-pm": {
-            "workspace": "/config/.openclaw/dev-pm-workspace",
-            "model": {
-                "primary": "github-copilot/gpt-4.1",
-                "fallbacks": [
-                    "newapi/gpt-4.1"
-                ]
-            },
-            "bindings": [
-                {
-                    "channel": "slack",
-                    "accountId": "dev-pm"
-                }
-            ]
-        },
-        "dev-eng": {
-            "workspace": "/config/.openclaw/dev-eng-workspace",
-            "model": {
-                "primary": "github-copilot/gpt-4.1",
-                "fallbacks": [
-                    "newapi/gpt-4.1"
-                ]
-            },
-            "bindings": [
-                {
-                    "channel": "slack",
-                    "accountId": "dev-eng"
-                }
-            ]
-        },
-        "dev-qa": {
-            "workspace": "/config/.openclaw/dev-qa-workspace",
-            "model": {
-                "primary": "github-copilot/gpt-4.1",
-                "fallbacks": [
-                    "newapi/gpt-4.1"
-                ]
-            },
-            "bindings": [
-                {
-                    "channel": "slack",
-                    "accountId": "dev-qa"
-                }
-            ]
-        },
-        "res-lead": {
-            "workspace": "/config/.openclaw/res-lead-workspace",
-            "model": {
-                "primary": "github-copilot/gpt-4.1",
-                "fallbacks": [
-                    "newapi/gpt-4.1"
-                ]
-            },
-            "bindings": [
-                {
-                    "channel": "slack",
-                    "accountId": "res-lead"
-                }
-            ]
-        },
-        "res-deep": {
-            "workspace": "/config/.openclaw/res-deep-workspace",
-            "model": {
-                "primary": "github-copilot/gpt-4.1",
-                "fallbacks": [
-                    "newapi/gpt-4.1"
-                ]
-            },
-            "bindings": [
-                {
-                    "channel": "slack",
-                    "accountId": "res-deep"
-                }
-            ]
-        },
-        "res-insight": {
-            "workspace": "/config/.openclaw/res-insight-workspace",
-            "model": {
-                "primary": "github-copilot/gpt-4.1",
-                "fallbacks": [
-                    "newapi/gpt-4.1"
-                ]
-            },
-            "bindings": [
-                {
-                    "channel": "slack",
-                    "accountId": "res-insight"
-                }
-            ]
-        },
-        "res-write": {
-            "workspace": "/config/.openclaw/res-write-workspace",
-            "model": {
-                "primary": "github-copilot/gpt-4.1",
-                "fallbacks": [
-                    "newapi/gpt-4.1"
-                ]
-            },
-            "bindings": [
-                {
-                    "channel": "slack",
-                    "accountId": "res-write"
-                }
-            ]
-        }
-    },
-    "gateway": {
-        "mode": "local",
-        "port": 18789,
-        "bind": "lan",
-        "auth": {
-            "mode": "token",
-            "token": "REPLACE-TOKEN"
-        },
-        "controlUi": {
-            "allowInsecureAuth": true,
-            "dangerouslyDisableDeviceAuth": true,
-            "dangerouslyAllowHostHeaderOriginFallback": true,
-            "allowedOrigins": [
-                "http://localhost"
-            ]
-        }
-    },
-    "plugins": {
-        "entries": {},
-        "installs": {}
     },
     "auth": {
         "profiles": {
@@ -363,6 +79,124 @@
             }
         }
     },
+    "agents": {
+        "defaults": {
+            "model": {
+                "primary": "github-copilot/gpt-4.1",
+                "fallbacks": [
+                    "newapi/gpt-4.1"
+                ]
+            },
+            "workspace": "/config/.openclaw/workspace",
+            "compaction": {
+                "mode": "safeguard"
+            },
+            "elevatedDefault": "full",
+            "heartbeat": {
+                "every": "30m",
+                "activeHours": {
+                    "start": "08:00",
+                    "end": "23:00"
+                }
+            },
+            "maxConcurrent": 4,
+            "subagents": {
+                "maxConcurrent": 8
+            }
+        },
+        "list": [
+            {
+                "workspace": "/config/.openclaw/workspace",
+                "model": {
+                    "primary": "github-copilot/gpt-4.1",
+                    "fallbacks": [
+                        "newapi/gpt-4.1"
+                    ]
+                },
+                "id": "vera"
+            },
+            {
+                "workspace": "/config/.openclaw/dev-lead-workspace",
+                "model": {
+                    "primary": "github-copilot/gpt-4.1",
+                    "fallbacks": [
+                        "newapi/gpt-4.1"
+                    ]
+                },
+                "id": "dev-lead"
+            },
+            {
+                "workspace": "/config/.openclaw/dev-pm-workspace",
+                "model": {
+                    "primary": "github-copilot/gpt-4.1",
+                    "fallbacks": [
+                        "newapi/gpt-4.1"
+                    ]
+                },
+                "id": "dev-pm"
+            },
+            {
+                "workspace": "/config/.openclaw/dev-eng-workspace",
+                "model": {
+                    "primary": "github-copilot/gpt-4.1",
+                    "fallbacks": [
+                        "newapi/gpt-4.1"
+                    ]
+                },
+                "id": "dev-eng"
+            },
+            {
+                "workspace": "/config/.openclaw/dev-qa-workspace",
+                "model": {
+                    "primary": "github-copilot/gpt-4.1",
+                    "fallbacks": [
+                        "newapi/gpt-4.1"
+                    ]
+                },
+                "id": "dev-qa"
+            },
+            {
+                "workspace": "/config/.openclaw/res-lead-workspace",
+                "model": {
+                    "primary": "github-copilot/gpt-4.1",
+                    "fallbacks": [
+                        "newapi/gpt-4.1"
+                    ]
+                },
+                "id": "res-lead"
+            },
+            {
+                "workspace": "/config/.openclaw/res-deep-workspace",
+                "model": {
+                    "primary": "github-copilot/gpt-4.1",
+                    "fallbacks": [
+                        "newapi/gpt-4.1"
+                    ]
+                },
+                "id": "res-deep"
+            },
+            {
+                "workspace": "/config/.openclaw/res-insight-workspace",
+                "model": {
+                    "primary": "github-copilot/gpt-4.1",
+                    "fallbacks": [
+                        "newapi/gpt-4.1"
+                    ]
+                },
+                "id": "res-insight"
+            },
+            {
+                "workspace": "/config/.openclaw/res-write-workspace",
+                "model": {
+                    "primary": "github-copilot/gpt-4.1",
+                    "fallbacks": [
+                        "newapi/gpt-4.1"
+                    ]
+                },
+                "id": "res-write"
+            }
+        ]
+    },
     "tools": {
         "deny": [
             "web_search"
@@ -373,6 +207,165 @@
         "nativeSkills": "auto",
         "restart": true,
         "ownerDisplay": "raw"
+    },
+    "channels": {
+        "slack": {
+            "mode": "socket",
+            "webhookPath": "/slack/events",
+            "enabled": true,
+            "userTokenReadOnly": true,
+            "groupPolicy": "allowlist",
+            "streaming": "partial",
+            "nativeStreaming": true,
+            "accounts": {
+                "vera": {
+                    "botToken": "xoxb-REPLACE-BOT-TOKEN",
+                    "appToken": "xapp-REPLACE-APP-TOKEN",
+                    "userTokenReadOnly": true,
+                    "nativeStreaming": true,
+                    "streaming": "partial"
+                },
+                "dev-lead": {
+                    "botToken": "xoxb-REPLACE-BOT-TOKEN",
+                    "appToken": "xapp-REPLACE-APP-TOKEN",
+                    "userTokenReadOnly": true,
+                    "nativeStreaming": true,
+                    "streaming": "partial"
+                },
+                "dev-pm": {
+                    "botToken": "xoxb-REPLACE-BOT-TOKEN",
+                    "appToken": "xapp-REPLACE-APP-TOKEN",
+                    "userTokenReadOnly": true,
+                    "nativeStreaming": true,
+                    "streaming": "partial"
+                },
+                "dev-eng": {
+                    "botToken": "xoxb-REPLACE-BOT-TOKEN",
+                    "appToken": "xapp-REPLACE-APP-TOKEN",
+                    "userTokenReadOnly": true,
+                    "nativeStreaming": true,
+                    "streaming": "partial"
+                },
+                "dev-qa": {
+                    "botToken": "xoxb-REPLACE-BOT-TOKEN",
+                    "appToken": "xapp-REPLACE-APP-TOKEN",
+                    "userTokenReadOnly": true,
+                    "nativeStreaming": true,
+                    "streaming": "partial"
+                },
+                "res-lead": {
+                    "botToken": "xoxb-REPLACE-BOT-TOKEN",
+                    "appToken": "xapp-REPLACE-APP-TOKEN",
+                    "userTokenReadOnly": true,
+                    "nativeStreaming": true,
+                    "streaming": "partial"
+                },
+                "res-deep": {
+                    "botToken": "xoxb-REPLACE-BOT-TOKEN",
+                    "appToken": "xapp-REPLACE-APP-TOKEN",
+                    "userTokenReadOnly": true,
+                    "nativeStreaming": true,
+                    "streaming": "partial"
+                },
+                "res-insight": {
+                    "botToken": "xoxb-REPLACE-BOT-TOKEN",
+                    "appToken": "xapp-REPLACE-APP-TOKEN",
+                    "userTokenReadOnly": true,
+                    "nativeStreaming": true,
+                    "streaming": "partial"
+                },
+                "res-write": {
+                    "botToken": "xoxb-REPLACE-BOT-TOKEN",
+                    "appToken": "xapp-REPLACE-APP-TOKEN",
+                    "userTokenReadOnly": true,
+                    "nativeStreaming": true,
+                    "streaming": "partial"
+                },
+                "default": {
+                    "webhookPath": "/slack/events",
+                    "botToken": "xoxb-REPLACE-BOT-TOKEN",
+                    "appToken": "xapp-REPLACE-APP-TOKEN",
+                    "userTokenReadOnly": true,
+                    "groupPolicy": "open",
+                    "dmPolicy": "allowlist",
+                    "allowFrom": [
+                        "U0AK7J5KX0Q"
+                    ],
+                    "nativeStreaming": true,
+                    "streaming": "partial"
+                }
+            }
+        }
+    },
+    "gateway": {
+        "port": 18789,
+        "mode": "local",
+        "bind": "lan",
+        "controlUi": {
+            "allowedOrigins": [
+                "http://localhost"
+            ],
+            "dangerouslyAllowHostHeaderOriginFallback": true,
+            "allowInsecureAuth": true,
+            "dangerouslyDisableDeviceAuth": true
+        },
+        "auth": {
+            "mode": "token",
+            "token": "REPLACE-TOKEN"
+        }
+    },
+    "memory": {
+        "backend": "qmd",
+        "qmd": {
+            "command": "/usr/local/bin/qmd",
+            "paths": [
+                {
+                    "path": "/config/.openclaw/workspace",
+                    "name": "vera",
+                    "pattern": "**/*.md"
+                },
+                {
+                    "path": "/config/.openclaw/dev-lead-workspace",
+                    "name": "dev-lead",
+                    "pattern": "**/*.md"
+                },
+                {
+                    "path": "/config/.openclaw/dev-pm-workspace",
+                    "name": "dev-pm",
+                    "pattern": "**/*.md"
+                },
+                {
+                    "path": "/config/.openclaw/dev-eng-workspace",
+                    "name": "dev-eng",
+                    "pattern": "**/*.md"
+                },
+                {
+                    "path": "/config/.openclaw/dev-qa-workspace",
+                    "name": "dev-qa",
+                    "pattern": "**/*.md"
+                },
+                {
+                    "path": "/config/.openclaw/res-lead-workspace",
+                    "name": "res-lead",
+                    "pattern": "**/*.md"
+                },
+                {
+                    "path": "/config/.openclaw/res-deep-workspace",
+                    "name": "res-deep",
+                    "pattern": "**/*.md"
+                },
+                {
+                    "path": "/config/.openclaw/res-insight-workspace",
+                    "name": "res-insight",
+                    "pattern": "**/*.md"
+                },
+                {
+                    "path": "/config/.openclaw/res-write-workspace",
+                    "name": "res-write",
+                    "pattern": "**/*.md"
+                }
+            ]
+        }
     },
     "skills": {
         "entries": {
@@ -410,5 +403,74 @@
                 "enabled": true
             }
         }
-    }
+    },
+    "plugins": {
+        "entries": {},
+        "installs": {}
+    },
+    "bindings": [
+        {
+            "agentId": "vera",
+            "match": {
+                "channel": "slack",
+                "accountId": "vera"
+            }
+        },
+        {
+            "agentId": "dev-lead",
+            "match": {
+                "channel": "slack",
+                "accountId": "dev-lead"
+            }
+        },
+        {
+            "agentId": "dev-pm",
+            "match": {
+                "channel": "slack",
+                "accountId": "dev-pm"
+            }
+        },
+        {
+            "agentId": "dev-eng",
+            "match": {
+                "channel": "slack",
+                "accountId": "dev-eng"
+            }
+        },
+        {
+            "agentId": "dev-qa",
+            "match": {
+                "channel": "slack",
+                "accountId": "dev-qa"
+            }
+        },
+        {
+            "agentId": "res-lead",
+            "match": {
+                "channel": "slack",
+                "accountId": "res-lead"
+            }
+        },
+        {
+            "agentId": "res-deep",
+            "match": {
+                "channel": "slack",
+                "accountId": "res-deep"
+            }
+        },
+        {
+            "agentId": "res-insight",
+            "match": {
+                "channel": "slack",
+                "accountId": "res-insight"
+            }
+        },
+        {
+            "agentId": "res-write",
+            "match": {
+                "channel": "slack",
+                "accountId": "res-write"
+            }
+        }
+    ]
 }
