@@ -33,11 +33,17 @@ cp "$RETONE_DIR/workspaces/research-team/bo-deep/IDENTITY.md" "$TARGET_DIR/res-d
 cp "$RETONE_DIR/workspaces/research-team/bo-insight/IDENTITY.md" "$TARGET_DIR/res-insight-workspace/IDENTITY.md"
 cp "$RETONE_DIR/workspaces/research-team/bo-write/IDENTITY.md" "$TARGET_DIR/res-write-workspace/IDENTITY.md"
 
-# 4. 用循环为所有人统一下发统一的灵魂骨架 (防止群聊回音壁的强制设定)
-echo ">>> 下发企业统一工作准则 (SOUL.md)..."
-for w_dir in workspace dev-lead-workspace dev-pm-workspace dev-eng-workspace dev-qa-workspace res-lead-workspace res-deep-workspace res-insight-workspace res-write-workspace; do
-  cp "$RETONE_DIR/org/SOUL_TEMPLATE.md" "$TARGET_DIR/$w_dir/SOUL.md"
-done
+# 4. 为每个角色分发各自的灵魂准则 (SOUL.md)
+echo ">>> 发放各角色的灵魂准则 (SOUL.md)..."
+cp "$RETONE_DIR/workspaces/shared/SOUL.md" "$TARGET_DIR/workspace/SOUL.md"
+cp "$RETONE_DIR/workspaces/dev-team/open-lead/SOUL.md" "$TARGET_DIR/dev-lead-workspace/SOUL.md"
+cp "$RETONE_DIR/workspaces/dev-team/open-pm/SOUL.md" "$TARGET_DIR/dev-pm-workspace/SOUL.md"
+cp "$RETONE_DIR/workspaces/dev-team/open-dev/SOUL.md" "$TARGET_DIR/dev-eng-workspace/SOUL.md"
+cp "$RETONE_DIR/workspaces/dev-team/open-qa/SOUL.md" "$TARGET_DIR/dev-qa-workspace/SOUL.md"
+cp "$RETONE_DIR/workspaces/research-team/bo-lead/SOUL.md" "$TARGET_DIR/res-lead-workspace/SOUL.md"
+cp "$RETONE_DIR/workspaces/research-team/bo-deep/SOUL.md" "$TARGET_DIR/res-deep-workspace/SOUL.md"
+cp "$RETONE_DIR/workspaces/research-team/bo-insight/SOUL.md" "$TARGET_DIR/res-insight-workspace/SOUL.md"
+cp "$RETONE_DIR/workspaces/research-team/bo-write/SOUL.md" "$TARGET_DIR/res-write-workspace/SOUL.md"
 
 # 5. [强烈建议] 设置权限，避免 Docker 内的用户 (比如 1000/abc) 读写配置文件时遭受 Permission Denied
 echo ">>> 修复目录权限 (777) 以适应 Docker 映射..."
