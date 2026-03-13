@@ -1,6 +1,6 @@
 {
     "meta": {
-        "lastTouchedVersion": "2026.3.12",
+        "lastTouchedVersion": "2026.3.11",
         "lastTouchedAt": "2026-03-13T08:54:07.207Z"
     },
     "wizard": {
@@ -280,19 +280,6 @@
                     "userTokenReadOnly": true,
                     "nativeStreaming": true,
                     "streaming": "partial"
-                },
-                "default": {
-                    "webhookPath": "/slack/events",
-                    "botToken": "xoxb-REPLACE-BOT-TOKEN",
-                    "appToken": "xapp-REPLACE-APP-TOKEN",
-                    "userTokenReadOnly": true,
-                    "groupPolicy": "open",
-                    "dmPolicy": "allowlist",
-                    "allowFrom": [
-                        "U0AK7J5KX0Q"
-                    ],
-                    "nativeStreaming": true,
-                    "streaming": "partial"
                 }
             }
         }
@@ -317,7 +304,7 @@
     "memory": {
         "backend": "qmd",
         "qmd": {
-            "command": "/usr/local/bin/qmd",
+            "command": "qmd",
             "paths": [
                 {
                     "path": "/config/.openclaw/workspace",
