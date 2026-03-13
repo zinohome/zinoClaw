@@ -40,9 +40,8 @@ RUN apt-get update && \
     playwright-extra \
     puppeteer-extra-plugin-stealth \
     @steipete/bird && \
-    # 3. 安装 Bun 和 QMD
-    curl -fsSL https://bun.sh/install | BUN_INSTALL=/usr/local bash && \
-    /usr/local/bin/bun install -g @tobilu/qmd && \
+    # 3. 使用 npm 安装 QMD (替代 Bun 以避免 CPU 指令兼容性问题)
+    npm install -g @tobilu/qmd && \
     # 4. 安装 uv（Python 极速包管理器，轻量 ~10MB，供 Python 类 Skill CLI 使用）
     curl -LsSf https://astral.sh/uv/install.sh | UV_INSTALL_DIR=/usr/local/bin sh && \
     uv tool install nano-pdf && \
