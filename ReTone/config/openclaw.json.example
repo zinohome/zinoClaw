@@ -211,20 +211,8 @@
     "channels": {
         "slack": {
             "mode": "socket",
-            "webhookPath": "/slack/events",
             "enabled": true,
-            "userTokenReadOnly": true,
-            "groupPolicy": "allowlist",
-            "streaming": "partial",
-            "nativeStreaming": true,
             "accounts": {
-                "vera": {
-                    "botToken": "xoxb-REPLACE-BOT-TOKEN",
-                    "appToken": "xapp-REPLACE-APP-TOKEN",
-                    "userTokenReadOnly": true,
-                    "nativeStreaming": true,
-                    "streaming": "partial"
-                },
                 "dev-lead": {
                     "botToken": "xoxb-REPLACE-BOT-TOKEN",
                     "appToken": "xapp-REPLACE-APP-TOKEN",
@@ -280,6 +268,15 @@
                     "userTokenReadOnly": true,
                     "nativeStreaming": true,
                     "streaming": "partial"
+                },
+                "default": {
+                    "botToken": "xoxb-REPLACE-BOT-TOKEN",
+                    "appToken": "xapp-REPLACE-APP-TOKEN",
+                    "userTokenReadOnly": true,
+                    "nativeStreaming": true,
+                    "streaming": "partial",
+                    "webhookPath": "/slack/events",
+                    "groupPolicy": "allowlist"
                 }
             }
         }
@@ -304,7 +301,7 @@
     "memory": {
         "backend": "qmd",
         "qmd": {
-            "command": "qmd",
+            "command": "/usr/bin/qmd",
             "paths": [
                 {
                     "path": "/config/.openclaw/workspace",
@@ -400,7 +397,7 @@
             "agentId": "vera",
             "match": {
                 "channel": "slack",
-                "accountId": "vera"
+                "accountId": "default"
             }
         },
         {
