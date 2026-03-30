@@ -203,7 +203,7 @@ RUN apt-get install -y /tmp/ClawX.deb && \
 # 第九步: 安装 Ollama
 # 使用官方 install.sh 脚本在线安装
 # -----------------------------------------------------------------------------
-RUN curl -fsSL https://ollama.com/install.sh | sh
+#RUN curl -fsSL https://ollama.com/install.sh | sh
 
 # -----------------------------------------------------------------------------
 # 元数据标签
