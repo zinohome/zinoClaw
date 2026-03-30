@@ -21,24 +21,24 @@
 FROM lscr.io/linuxserver/webtop:ubuntu-kde
 
 # -----------------------------------------------------------------------------
-# 第零步: 替换 apt 源为清华大学镜像，并全量更新系统软件包
-# 使用清华源加速国内构建，避免访问境外源超时
+# 第零步: 替换 apt 源为国内官方归档镜像，并全量更新系统软件包
+# 使用国内源加速构建，避免访问境外源超时
 # apt dist-upgrade 比 apt upgrade 更彻底，可处理依赖关系变化的包
 # 注意: 使用 printf 逐行写入，避免 heredoc 被 Dockerfile linter 误判
 # -----------------------------------------------------------------------------
 
-# 备份原始 sources.list 并替换为清华镜像源（Ubuntu 24.04 Noble）
+# 备份原始 sources.list 并替换为镜像源（Ubuntu 24.04 Noble）
 RUN printf '%s\n' \
-    '# 清华大学开源软件镜像站 - Ubuntu 24.04 Noble' \
+    '# Ubuntu 软件镜像站 - Ubuntu 24.04 Noble' \
     '# 默认注释了源码镜像以提高 apt update 速度' \
-    'deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ noble main restricted universe multiverse' \
-    '# deb-src https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ noble main restricted universe multiverse' \
-    'deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ noble-updates main restricted universe multiverse' \
-    '# deb-src https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ noble-updates main restricted universe multiverse' \
-    'deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ noble-backports main restricted universe multiverse' \
-    '# deb-src https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ noble-backports main restricted universe multiverse' \
-    'deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ noble-security main restricted universe multiverse' \
-    '# deb-src https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ noble-security main restricted universe multiverse' \
+    'deb http://cn.archive.ubuntu.com/ubuntu/ noble main restricted universe multiverse' \
+    '# deb-src http://cn.archive.ubuntu.com/ubuntu/ noble main restricted universe multiverse' \
+    'deb http://cn.archive.ubuntu.com/ubuntu/ noble-updates main restricted universe multiverse' \
+    '# deb-src http://cn.archive.ubuntu.com/ubuntu/ noble-updates main restricted universe multiverse' \
+    'deb http://cn.archive.ubuntu.com/ubuntu/ noble-backports main restricted universe multiverse' \
+    '# deb-src http://cn.archive.ubuntu.com/ubuntu/ noble-backports main restricted universe multiverse' \
+    'deb http://cn.archive.ubuntu.com/ubuntu/ noble-security main restricted universe multiverse' \
+    '# deb-src http://cn.archive.ubuntu.com/ubuntu/ noble-security main restricted universe multiverse' \
     > /etc/apt/sources.list && \
     # 更新软件包索引
     apt-get update && \
