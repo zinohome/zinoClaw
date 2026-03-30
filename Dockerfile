@@ -11,6 +11,7 @@
 #   6. 安装 Antigravity（via Google Cloud Artifact Registry apt 源）
 #   7. 安装 Google Chrome（via Google apt 源）
 #   8. 安装 ClawX（本地 .deb 安装 ClawX-0.3.2）
+#   9. 安装 Ollama（官方 install.sh 脚本）
 #
 # 构建命令 (在 zinoClaw/ 目录下执行):
 #   docker build --progress=plain \
@@ -199,9 +200,15 @@ RUN apt-get install -y /tmp/ClawX.deb && \
     rm -rf /var/lib/apt/lists/*
 
 # -----------------------------------------------------------------------------
+# 第九步: 安装 Ollama
+# 使用官方 install.sh 脚本在线安装
+# -----------------------------------------------------------------------------
+RUN curl -fsSL https://ollama.com/install.sh | sh
+
+# -----------------------------------------------------------------------------
 # 元数据标签
 # -----------------------------------------------------------------------------
 LABEL maintainer="zhangjun" \
-    description="webclaw KDE 桌面底包 - VSCode + Cursor + Antigravity + Chrome + ClawX + JetBrains Mono + KDE 主题" \
+    description="webclaw KDE 桌面底包 - VSCode + Cursor + Antigravity + Chrome + ClawX + Ollama + JetBrains Mono + KDE 主题" \
     base="lscr.io/linuxserver/webtop:ubuntu-kde" \
     version="2.0.0"
