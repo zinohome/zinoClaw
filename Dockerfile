@@ -10,6 +10,7 @@
 #   5. 安装 Cursor（本地 .deb，自动注入官方 apt 源供后续更新）
 #   6. 安装 Antigravity（via Google Cloud Artifact Registry apt 源）
 #   7. 安装 Google Chrome（via Google apt 源）
+#   8. 安装 ClawX（本地 .deb 安装 ClawX-0.3.2）
 #
 # 构建命令 (在 zinoClaw/ 目录下执行):
 #   docker build --progress=plain \
@@ -145,7 +146,7 @@ RUN wget -qO- https://packages.microsoft.com/keys/microsoft.asc | \
 # 使用本地 .deb 文件安装，安装过程会自动注入 Cursor 官方 apt 源
 # 保证容器内可通过 apt 进行后续更新
 # -----------------------------------------------------------------------------
-COPY docker-customize/Software/cursor_2.5.26_amd64.deb /tmp/cursor.deb
+COPY docker-customize/Software/cursor_2.6.22_amd64.deb /tmp/cursor.deb
 
 RUN apt-get install -y /tmp/cursor.deb && \
     apt-get clean && \
@@ -187,9 +188,20 @@ RUN curl -fsSL https://dl.google.com/linux/linux_signing_key.pub | \
     rm -rf /var/lib/apt/lists/*
 
 # -----------------------------------------------------------------------------
+# 第八步: 安装 ClawX
+# 使用本地 .deb 文件安装 (ClawX-0.3.2-linux-amd64.deb)
+# -----------------------------------------------------------------------------
+COPY docker-customize/Software/ClawX-0.3.2-linux-amd64.deb /tmp/ClawX.deb
+
+RUN apt-get install -y /tmp/ClawX.deb && \
+    apt-get clean && \
+    rm -f /tmp/ClawX.deb && \
+    rm -rf /var/lib/apt/lists/*
+
+# -----------------------------------------------------------------------------
 # 元数据标签
 # -----------------------------------------------------------------------------
 LABEL maintainer="zhangjun" \
-    description="webclaw KDE 桌面底包 - VSCode + Cursor + Antigravity + Chrome + JetBrains Mono + KDE 主题" \
+    description="webclaw KDE 桌面底包 - VSCode + Cursor + Antigravity + Chrome + ClawX + JetBrains Mono + KDE 主题" \
     base="lscr.io/linuxserver/webtop:ubuntu-kde" \
     version="2.0.0"
