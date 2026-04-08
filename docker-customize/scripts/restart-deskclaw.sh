@@ -5,6 +5,17 @@ SVC_DIR="/run/s6-rc/servicedirs/svc-deskclaw"
 WEBUI_PORT="${WEBUI_PORT:-18780}"
 GATEWAY_PORT="${DESKCLAW_ADAPTER_PORT:-18790}"
 
+wait_port_closed() {
+  local port="$1"
+  for _ in $(seq 1 60); do
+    if ! (lsof -tiTCP:"$port" -sTCP:LISTEN >/dev/null 2>&1); then
+      return 0
+    fi
+    sleep 0.2
+  done
+  return 1
+}
+
 if [ ! -d "$SVC_DIR" ]; then
   echo "[restart-deskclaw] service dir not found: $SVC_DIR" >&2
   exit 1
@@ -12,7 +23,13 @@ fi
 
 echo "[restart-deskclaw] stopping svc-deskclaw..."
 s6-svc -d "$SVC_DIR" || true
-sleep 1
+
+if ! wait_port_closed "$GATEWAY_PORT"; then
+  echo "[restart-deskclaw] warning: gateway port :${GATEWAY_PORT} still in use after stop." >&2
+fi
+if ! wait_port_closed "$WEBUI_PORT"; then
+  echo "[restart-deskclaw] warning: webui port :${WEBUI_PORT} still in use after stop." >&2
+fi
 
 echo "[restart-deskclaw] starting svc-deskclaw..."
 s6-svc -u "$SVC_DIR"

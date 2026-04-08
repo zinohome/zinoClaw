@@ -22,6 +22,34 @@ SKILLS_DST="${DESKCLAW_NANOBOT_HOME}/workspace/skills"
 mkdir -p "$DESKCLAW_HOME" "$DESKCLAW_NANOBOT_HOME" "$(dirname "$NANOBOT_CONFIG_PATH")"
 chown -R abc:abc "$DESKCLAW_HOME" || true
 
+cleanup_listen_port() {
+  local port="$1"
+  local name="$2"
+  local pids
+  pids="$( (lsof -tiTCP:"$port" -sTCP:LISTEN || true) 2>/dev/null )"
+  if [ -z "${pids}" ]; then
+    return 0
+  fi
+
+  echo "[deskclaw] ${name} port :${port} is already in use by PID(s): ${pids}. Stopping stale process(es)..."
+  # shellcheck disable=SC2086
+  kill -TERM ${pids} 2>/dev/null || true
+
+  for _ in $(seq 1 20); do
+    pids="$( (lsof -tiTCP:"$port" -sTCP:LISTEN || true) 2>/dev/null )"
+    if [ -z "${pids}" ]; then
+      echo "[deskclaw] ${name} port :${port} released."
+      return 0
+    fi
+    sleep 0.2
+  done
+
+  echo "[deskclaw] ${name} port :${port} still busy after TERM. Sending KILL to PID(s): ${pids}."
+  # shellcheck disable=SC2086
+  kill -KILL ${pids} 2>/dev/null || true
+  sleep 0.2
+}
+
 # 幂等同步内置 skills：只补缺失，不覆盖用户已有修改
 if [ -d "$SKILLS_SRC" ]; then
   mkdir -p "$SKILLS_DST"
@@ -136,6 +164,10 @@ export DESKCLAW_ADAPTER_HOST="$GATEWAY_HOST"
 export DESKCLAW_ADAPTER_PORT="$GATEWAY_PORT"
 export WEBUI_USE_DESKCLAW_GATEWAY="true"
 export DESKCLAW_GATEWAY_BASE="http://${GATEWAY_HOST}:${GATEWAY_PORT}"
+
+# restart 流程中可能出现旧实例残留，先清理端口避免重复拉起时冲突
+cleanup_listen_port "$GATEWAY_PORT" "gateway"
+cleanup_listen_port "$WEBUI_PORT" "webui"
 
 # webtop/linuxserver 使用 abc 用户运行应用进程；用 s6-setuidgid 降权。
 s6-setuidgid abc env \
