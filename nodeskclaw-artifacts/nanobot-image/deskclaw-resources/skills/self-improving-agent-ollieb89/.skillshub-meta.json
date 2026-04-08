@@ -1,0 +1,9 @@
+{
+  "slug": "self-improving-agent-ollieb89",
+  "version": "1.1.1",
+  "registry": "https://skills.nodeskai.com",
+  "installedAt": "2026-04-05T09:05:45.177Z",
+  "inspectName": "自我改进代理（Self Improving Agent Ollieb89）",
+  "inspectDescription": "记录错误、纠正和重复模式到日志中，并将其转化为持久的指导，提升代理的自我改进能力。",
+  "inspectVersion": "1.1.1"
+}

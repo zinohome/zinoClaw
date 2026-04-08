@@ -1,0 +1,21 @@
+# 项目注册表模板
+# 使用方式：复制本文件到技能目录下并重命名为 projects.yaml，然后按实际项目填写
+# 不要提交填有真实信息的 projects.yaml 到公开仓库，避免泄露项目与路径
+
+projects:
+  - name: "项目名称"
+    repo: "https://codeup.aliyun.com/org/repo-name.git"
+    local_path: "~/projects/repo-name"
+    main_branch: "master"
+    tech_stack: "技术栈简述，如 Java + Spring Boot"
+    description: "项目简短描述"
+    contacts: "负责人或团队"
+
+  # 多项目时继续追加，例如：
+  # - name: "前端项目"
+  #   repo: "https://codeup.aliyun.com/org/frontend.git"
+  #   local_path: "~/projects/frontend"
+  #   main_branch: "main"
+  #   tech_stack: "React + TypeScript"
+  #   description: "前端应用"
+  #   contacts: "李四"

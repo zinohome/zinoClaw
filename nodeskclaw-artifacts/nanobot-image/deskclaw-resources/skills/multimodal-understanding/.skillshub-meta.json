@@ -1,0 +1,9 @@
+{
+  "slug": "multimodal-understanding",
+  "version": "1.1.8",
+  "registry": "https://skills.nodeskai.com",
+  "installedAt": "2026-04-08T03:07:14.450Z",
+  "inspectName": "图像识别（Multimodal Understanding）",
+  "inspectDescription": "识别与理解图片内容，支持本地文件和 URL 输入。",
+  "inspectVersion": "1.1.8"
+}

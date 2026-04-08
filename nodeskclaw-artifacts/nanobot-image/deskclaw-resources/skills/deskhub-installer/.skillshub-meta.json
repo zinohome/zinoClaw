@@ -1,0 +1,9 @@
+{
+  "slug": "deskhub-installer",
+  "version": "1.2.1",
+  "registry": "https://skills.nodeskai.com",
+  "installedAt": "2026-04-05T08:29:57.245Z",
+  "inspectName": "DeskHub 技能管理器（DeskHub Installer）",
+  "inspectDescription": "从 DeskHub 技能市场搜索、安装、更新技能到 Nanobot Workspace Skills 目录。",
+  "inspectVersion": "1.2.1"
+}

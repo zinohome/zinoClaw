@@ -1,0 +1,9 @@
+{
+  "slug": "amap-maps",
+  "version": "1.0.0",
+  "registry": "https://skills.nodeskai.com",
+  "installedAt": "2026-04-04T01:28:14.848Z",
+  "inspectName": "高德地图",
+  "inspectDescription": "高德地图 API 集成，提供地理编码、天气查询、路径规划等功能",
+  "inspectVersion": "1.0.0"
+}

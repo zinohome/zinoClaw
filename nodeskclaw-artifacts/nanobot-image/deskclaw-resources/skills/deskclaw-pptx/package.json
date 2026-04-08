@@ -1,0 +1,12 @@
+{
+  "name": "deskclaw-pptx",
+  "version": "3.0.0",
+  "description": "DeskClaw PPTX Generator - Create, edit, and analyze PowerPoint presentations",
+  "main": "scripts/html2pptx.js",
+  "license": "MIT",
+  "dependencies": {
+    "playwright": "^1.59.1",
+    "pptxgenjs": "^4.0.1",
+    "sharp": "^0.34.5"
+  }
+}

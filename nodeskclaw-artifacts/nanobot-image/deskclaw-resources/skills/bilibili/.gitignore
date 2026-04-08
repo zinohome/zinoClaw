@@ -1,0 +1,34 @@
+# 凭证文件（加密或明文回退）
+data/credential.enc
+data/credential.json
+
+# 临时数据（二维码、封面等）
+data/qrcode.png
+data/qrcode_key.json
+data/auto_cover.jpg
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# 环境
+.env
+.venv
+env/
+venv/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store

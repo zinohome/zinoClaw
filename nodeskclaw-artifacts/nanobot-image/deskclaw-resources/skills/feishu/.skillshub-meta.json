@@ -1,0 +1,9 @@
+{
+  "slug": "feishu",
+  "version": "1.0.0",
+  "registry": "https://skills.nodeskai.com",
+  "installedAt": "2026-04-04T01:28:16.390Z",
+  "inspectName": "飞书集成（Feishu Integration）",
+  "inspectDescription": "飞书全能力 Skill，涵盖文档读写（MCP）、IM 消息发送（文本/富文本/卡片）、用户搜索、评论、权限管理，含鉴权配置、踩坑经验和 Python 工具模板。",
+  "inspectVersion": "1.0.0"
+}

@@ -1,0 +1,11 @@
+{
+  "name": "multi-search-cn",
+  "engines": [
+    {"name": "WeChat", "url": "https://wx.sogou.com/weixin?type=2&query={keyword}", "region": "cn", "priority": 1, "note": "中文深度内容首选"},
+    {"name": "Sogou", "url": "https://sogou.com/web?query={keyword}", "region": "cn", "priority": 2, "note": "中文通用搜索"},
+    {"name": "360", "url": "https://www.so.com/s?q={keyword}", "region": "cn", "priority": 3, "note": "有AI摘要加成"},
+    {"name": "Bing CN", "url": "https://cn.bing.com/search?q={keyword}&ensearch=0", "region": "cn", "priority": 4, "note": "不稳定，需交叉验证"},
+    {"name": "Bing INT", "url": "https://cn.bing.com/search?q={keyword}&ensearch=1", "region": "cn", "priority": 5, "note": "仅英文泛搜，高级语法无效"},
+    {"name": "Toutiao", "url": "https://so.toutiao.com/search?keyword={keyword}", "region": "cn", "priority": 6, "note": "结果需后处理，URL被JS跳转包裹"}
+  ]
+}
