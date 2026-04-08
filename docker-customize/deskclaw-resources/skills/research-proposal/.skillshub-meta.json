@@ -1,0 +1,9 @@
+{
+  "slug": "research-proposal",
+  "version": "2.0.0",
+  "registry": "https://skills.nodeskai.com",
+  "installedAt": "2026-04-04T01:28:16.498Z",
+  "inspectName": "研究计划生成器",
+  "inspectDescription": "为本科生、研究生、博士申请生成高质量学术研究计划。支持 STEM、人文、社会科学领域，遵循 Nature Reviews 学术写作规范，支持中英文输出。通过 5 阶段工作流（需求收集→文献检索→大纲生成→内容撰写→输出审核）生成 2000-4000 字的研究计划书。",
+  "inspectVersion": "2.0.0"
+}

@@ -1,0 +1,9 @@
+{
+  "slug": "devteam-command",
+  "version": "1.2.1",
+  "registry": "https://skills.nodeskai.com",
+  "installedAt": "2026-04-05T09:19:45.309Z",
+  "inspectName": "开发团队可复用流程（Devteam Command）",
+  "inspectDescription": "调用完整的开发团队流程：规划→产品管理→编码→测试→修复→报告，适用于各种编码任务。",
+  "inspectVersion": "1.2.1"
+}

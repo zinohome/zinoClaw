@@ -1,0 +1,12 @@
+# B站 MCP 依赖
+# 安装: pip3 install -r requirements.txt
+
+# 核心依赖
+bilibili-api-python>=17.0.0
+aiohttp>=3.8.0
+pillow>=9.0.0
+qrcode>=7.0
+cryptography>=41.0.0
+
+# 可选依赖（用于视频封面提取，如果没有 ffmpeg）
+opencv-python>=4.5.0

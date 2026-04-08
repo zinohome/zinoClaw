@@ -39,7 +39,6 @@ services:
     restart: unless-stopped
     networks:
       - 1panel-network
-    command: ["/bin/bash", "-lc", "/usr/local/bin/start-deskclaw-webui"]
 
 networks:
   1panel-network:

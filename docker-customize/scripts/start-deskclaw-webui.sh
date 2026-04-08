@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/with-contenv bash
 set -euo pipefail
 
 DESKCLAW_HOME="${DESKCLAW_HOME:-/config/.deskclaw}"
@@ -16,16 +16,25 @@ DESKCLAW_API_KEY="${DESKCLAW_API_KEY:-}"
 
 GATEWAY_VENV="/opt/deskclaw/gateway-venv"
 WEBUI_VENV="/opt/deskclaw/webui-venv"
-GATEWAY_SRC="/opt/deskclaw/resources/gateway"
-NANOBOT_WHEEL_GLOB="/opt/deskclaw/resources/nanobot/nanobot_ai-*.whl"
-PATCH_ROOT="/opt/patches/nanobot-webui"
-PATCH_APPLIER="/opt/patches/apply_webui_patches.py"
-
+SKILLS_SRC="/opt/deskclaw/resources/skills"
+SKILLS_DST="${DESKCLAW_NANOBOT_HOME}/workspace/skills"
 mkdir -p "$DESKCLAW_HOME" "$DESKCLAW_NANOBOT_HOME" "$(dirname "$NANOBOT_CONFIG_PATH")"
+chown -R abc:abc "$DESKCLAW_HOME" || true
 
-if [ ! -d "$GATEWAY_SRC" ] || [ ! -d "/opt/deskclaw/resources/nanobot" ]; then
-  echo "DeskClaw 资源目录缺失: /opt/deskclaw/resources/{gateway,nanobot}" >&2
-  echo "请先在仓库执行: python3 docker-customize/scripts/prepare-deskclaw-resources.py" >&2
+# 幂等同步内置 skills：只补缺失，不覆盖用户已有修改
+if [ -d "$SKILLS_SRC" ]; then
+  mkdir -p "$SKILLS_DST"
+  cp -rn "$SKILLS_SRC"/. "$SKILLS_DST"/ 2>/dev/null || true
+  chown -R abc:abc "$SKILLS_DST" || true
+fi
+
+if [ ! -x "${GATEWAY_VENV}/bin/deskclaw-gateway" ]; then
+  echo "deskclaw-gateway 未预安装到 ${GATEWAY_VENV}，请重新构建镜像。" >&2
+  exit 1
+fi
+
+if [ ! -x "${WEBUI_VENV}/bin/nanobot" ]; then
+  echo "nanobot-webui 未预安装到 ${WEBUI_VENV}，请重新构建镜像。" >&2
   exit 1
 fi
 
@@ -59,28 +68,6 @@ if [ ! -f "$NANOBOT_CONFIG_PATH" ]; then
 EOF
 fi
 
-if [ ! -x "${GATEWAY_VENV}/bin/deskclaw-gateway" ]; then
-  python3 -m venv "$GATEWAY_VENV"
-  "${GATEWAY_VENV}/bin/pip" install -U pip setuptools wheel
-  WHEEL_PATH="$(ls $NANOBOT_WHEEL_GLOB | head -n 1)"
-  if [ -z "${WHEEL_PATH:-}" ]; then
-    echo "未找到 DeskClaw nanobot wheel: $NANOBOT_WHEEL_GLOB" >&2
-    exit 1
-  fi
-  "${GATEWAY_VENV}/bin/pip" install "$WHEEL_PATH"
-  "${GATEWAY_VENV}/bin/pip" install "$GATEWAY_SRC"
-fi
-
-if [ ! -x "${WEBUI_VENV}/bin/nanobot" ]; then
-  python3 -m venv "$WEBUI_VENV"
-  "${WEBUI_VENV}/bin/pip" install -U pip setuptools wheel
-  "${WEBUI_VENV}/bin/pip" install nanobot-webui
-fi
-
-if [ -d "$PATCH_ROOT" ] && [ -f "$PATCH_APPLIER" ]; then
-  "${WEBUI_VENV}/bin/python" "$PATCH_APPLIER" "$PATCH_ROOT" || true
-fi
-
 echo "[deskclaw] gateway: http://${GATEWAY_HOST}:${GATEWAY_PORT}"
 echo "[deskclaw] webui:   http://${WEBUI_HOST}:${WEBUI_PORT}"
 
@@ -92,12 +79,16 @@ export DESKCLAW_ADAPTER_PORT="$GATEWAY_PORT"
 export WEBUI_USE_DESKCLAW_GATEWAY="true"
 export DESKCLAW_GATEWAY_BASE="http://${GATEWAY_HOST}:${GATEWAY_PORT}"
 
-"${GATEWAY_VENV}/bin/deskclaw-gateway" &
+# webtop/linuxserver 使用 abc 用户运行应用进程；用 s6-setuidgid 降权。
+s6-setuidgid abc "${GATEWAY_VENV}/bin/deskclaw-gateway" &
 GATEWAY_PID=$!
 
-cleanup() {
-  kill -TERM "$GATEWAY_PID" 2>/dev/null || true
-}
-trap cleanup EXIT INT TERM
+s6-setuidgid abc "${WEBUI_VENV}/bin/nanobot" webui start --webui-only --host "$WEBUI_HOST" --port "$WEBUI_PORT" --config "$NANOBOT_CONFIG_PATH" &
+WEBUI_PID=$!
 
-exec "${WEBUI_VENV}/bin/nanobot" webui start --webui-only --host "$WEBUI_HOST" --port "$WEBUI_PORT" --config "$NANOBOT_CONFIG_PATH"
+wait -n "$GATEWAY_PID" "$WEBUI_PID"
+EXIT_CODE=$?
+
+kill -TERM "$GATEWAY_PID" "$WEBUI_PID" 2>/dev/null || true
+wait "$GATEWAY_PID" "$WEBUI_PID" 2>/dev/null || true
+exit "$EXIT_CODE"

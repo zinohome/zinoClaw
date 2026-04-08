@@ -1,0 +1,9 @@
+{
+  "slug": "content-humanizer",
+  "version": "2.1.2",
+  "registry": "https://skills.nodeskai.com",
+  "installedAt": "2026-04-05T09:03:15.132Z",
+  "inspectName": "AI内容人性化处理（Content Humanizer）",
+  "inspectDescription": "将AI生成的内容转化为更自然、更具个性、更贴近人类表达风格的内容，避免机械化或缺乏情感的表达。",
+  "inspectVersion": "2.1.2"
+}

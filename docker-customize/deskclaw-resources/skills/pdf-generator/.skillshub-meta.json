@@ -1,0 +1,9 @@
+{
+  "slug": "pdf-generator",
+  "version": "1.1.0",
+  "registry": "https://skills.nodeskai.com",
+  "installedAt": "2026-04-04T01:28:17.662Z",
+  "inspectName": "PDF 生成器（PDF Generator）",
+  "inspectDescription": "基于 token 设计系统的高品质 PDF 生成技能，支持从零创建（15 种文档类型 + 封面）、填写表单字段、重排现有文档三大场景，自动适配 CJK 中文字体。v1.1.0 新增 Windows 跨平台支持（run_pipeline.py）。来源：github.com/MiniMaxAI，作者：MiniMaxAI，许可证：MIT。",
+  "inspectVersion": "1.1.0"
+}

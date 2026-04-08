@@ -1,0 +1,13 @@
+{
+  "name": "bilibili-mcp",
+  "version": "1.0.0",
+  "description": "B站全功能操作技能：视频上传/搜索/互动、动态发布、直播弹幕、收藏夹管理、关注粉丝、历史记录等",
+  "author": "",
+  "license": "MIT",
+  "python": ">=3.9",
+  "dependencies": [
+    "bilibili-api-python>=17.0.0"
+  ],
+  "tags": ["bilibili", "b站", "视频", "社交媒体", "自动化"],
+  "triggers": ["B站", "哔哩哔哩", "bilibili", "投稿", "直播", "弹幕"]
+}

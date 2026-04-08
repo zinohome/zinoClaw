@@ -191,37 +191,37 @@ RUN curl -fsSL https://dl.google.com/linux/linux_signing_key.pub | \
     rm -rf /var/lib/apt/lists/*
 
 # -----------------------------------------------------------------------------
-# 第八步: 预置 nanobot-webui 补丁覆盖机制（不改第三方源码仓库）
-# 说明:
-#   - 将本仓库 patches/nanobot-webui 下的文件放入镜像
-#   - 若镜像中已安装 webui 包，则在构建时自动覆盖对应模块文件
-#   - 若尚未安装 webui，则跳过；可在后续层或容器启动阶段再次执行同逻辑
-# -----------------------------------------------------------------------------
-COPY patches/nanobot-webui/ /opt/patches/nanobot-webui/
-COPY docker-customize/scripts/apply_webui_patches.py /opt/patches/apply_webui_patches.py
-
-RUN python3 -c "import importlib.util, pathlib, shutil; \
-spec=importlib.util.find_spec('webui'); \
-patch_root=pathlib.Path('/opt/patches/nanobot-webui'); \
-print('[patch] webui installed:', bool(spec)); \
- \
- \
- \
-target_root=pathlib.Path(spec.submodule_search_locations[0]) if spec and spec.submodule_search_locations else None; \
- \
- \
- \
-[(p.parent.mkdir(parents=True, exist_ok=True), shutil.copy2(str(src), str(p)), print('[patch] applied', src.relative_to(patch_root))) \
- for src in patch_root.rglob('*') if src.is_file() and target_root is not None \
- for p in [target_root / src.relative_to(patch_root)] ]"
-
-# -----------------------------------------------------------------------------
-# 第九步: 预置 DeskClaw gateway 资源与一键启动脚本
+# 第八步: 预置 DeskClaw 资源 + nanobot-webui 补丁，并在构建期完成安装
+# 运行期不再 pip install，容器启动即就绪
 # -----------------------------------------------------------------------------
 COPY docker-customize/deskclaw-resources/ /opt/deskclaw/resources/
+COPY patches/nanobot-webui/ /opt/patches/nanobot-webui/
+COPY docker-customize/scripts/apply_webui_patches.py /opt/patches/apply_webui_patches.py
 COPY docker-customize/scripts/start-deskclaw-webui.sh /usr/local/bin/start-deskclaw-webui
 
-RUN chmod +x /usr/local/bin/start-deskclaw-webui /opt/patches/apply_webui_patches.py
+RUN set -eux; \
+    chmod +x /usr/local/bin/start-deskclaw-webui /opt/patches/apply_webui_patches.py; \
+    python3 -m venv /opt/deskclaw/gateway-venv; \
+    /opt/deskclaw/gateway-venv/bin/pip install -U pip setuptools wheel; \
+    WHEEL_PATH="$(ls /opt/deskclaw/resources/nanobot/nanobot_ai-*.whl | head -n 1)"; \
+    /opt/deskclaw/gateway-venv/bin/pip install "$WHEEL_PATH"; \
+    /opt/deskclaw/gateway-venv/bin/pip install /opt/deskclaw/resources/gateway; \
+    python3 -m venv /opt/deskclaw/webui-venv; \
+    /opt/deskclaw/webui-venv/bin/pip install -U pip setuptools wheel; \
+    /opt/deskclaw/webui-venv/bin/pip install nanobot-webui; \
+    /opt/deskclaw/webui-venv/bin/python /opt/patches/apply_webui_patches.py /opt/patches/nanobot-webui
+
+# -----------------------------------------------------------------------------
+# 第九步: 注册 s6 服务（webtop 启动时自动拉起 deskclaw-gateway + webui）
+# -----------------------------------------------------------------------------
+RUN mkdir -p /etc/s6-overlay/s6-rc.d/svc-deskclaw && \
+    echo "longrun" > /etc/s6-overlay/s6-rc.d/svc-deskclaw/type && \
+    printf "#!/usr/bin/with-contenv bash\nexec /usr/local/bin/start-deskclaw-webui\n" > /etc/s6-overlay/s6-rc.d/svc-deskclaw/run && \
+    chmod +x /etc/s6-overlay/s6-rc.d/svc-deskclaw/run && \
+    mkdir -p /etc/s6-overlay/s6-rc.d/svc-deskclaw/dependencies.d && \
+    touch /etc/s6-overlay/s6-rc.d/svc-deskclaw/dependencies.d/init-adduser && \
+    mkdir -p /etc/s6-overlay/s6-rc.d/user/contents.d && \
+    touch /etc/s6-overlay/s6-rc.d/user/contents.d/svc-deskclaw
 
 # -----------------------------------------------------------------------------
 # 元数据标签

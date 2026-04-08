@@ -1,0 +1,9 @@
+{
+  "slug": "deskclaw-pptx",
+  "version": "3.0.2",
+  "registry": "https://skills.nodeskai.com",
+  "installedAt": "2026-04-04T01:28:11.353Z",
+  "inspectName": "PPT 演示文稿生成器（DeskClaw PPTX）",
+  "inspectDescription": "DeskClaw 自研 PPT 全能工具。支持从零创建（HTML 高精度渲染）、模板编辑（OOXML）、内容分析三大工作流。内置视觉校验、图表表格支持、18 种配色方案，跨平台兼容。",
+  "inspectVersion": "3.0.2"
+}
