@@ -2,3 +2,4 @@ docker-customize/Software/*.deb
 docker-customize/Software/*.tar.gz
 docker-customize/Software/*.zip
 ReTone/config/openclaw.json
+projects/
