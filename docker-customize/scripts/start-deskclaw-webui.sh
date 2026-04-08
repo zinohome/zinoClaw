@@ -16,6 +16,7 @@ DESKCLAW_API_KEY="${DESKCLAW_API_KEY:-}"
 
 GATEWAY_VENV="/opt/deskclaw/gateway-venv"
 WEBUI_VENV="/opt/deskclaw/webui-venv"
+GATEWAY_PYTHONPATH="/opt/deskclaw/resources"
 SKILLS_SRC="/opt/deskclaw/resources/skills"
 SKILLS_DST="${DESKCLAW_NANOBOT_HOME}/workspace/skills"
 mkdir -p "$DESKCLAW_HOME" "$DESKCLAW_NANOBOT_HOME" "$(dirname "$NANOBOT_CONFIG_PATH")"
@@ -28,8 +29,8 @@ if [ -d "$SKILLS_SRC" ]; then
   chown -R abc:abc "$SKILLS_DST" || true
 fi
 
-if [ ! -x "${GATEWAY_VENV}/bin/deskclaw-gateway" ]; then
-  echo "deskclaw-gateway 未预安装到 ${GATEWAY_VENV}，请重新构建镜像。" >&2
+if [ ! -x "${GATEWAY_VENV}/bin/python" ]; then
+  echo "gateway python 运行时缺失于 ${GATEWAY_VENV}，请重新构建镜像。" >&2
   exit 1
 fi
 
@@ -80,7 +81,14 @@ export WEBUI_USE_DESKCLAW_GATEWAY="true"
 export DESKCLAW_GATEWAY_BASE="http://${GATEWAY_HOST}:${GATEWAY_PORT}"
 
 # webtop/linuxserver 使用 abc 用户运行应用进程；用 s6-setuidgid 降权。
-s6-setuidgid abc "${GATEWAY_VENV}/bin/deskclaw-gateway" &
+s6-setuidgid abc env \
+  PYTHONPATH="${GATEWAY_PYTHONPATH}" \
+  DESKCLAW_HOME="${DESKCLAW_HOME}" \
+  DESKCLAW_NANOBOT_HOME="${DESKCLAW_NANOBOT_HOME}" \
+  NANOBOT_CONFIG_PATH="${NANOBOT_CONFIG_PATH}" \
+  DESKCLAW_ADAPTER_HOST="${GATEWAY_HOST}" \
+  DESKCLAW_ADAPTER_PORT="${GATEWAY_PORT}" \
+  "${GATEWAY_VENV}/bin/python" -m gateway.server &
 GATEWAY_PID=$!
 
 s6-setuidgid abc "${WEBUI_VENV}/bin/nanobot" webui start --webui-only --host "$WEBUI_HOST" --port "$WEBUI_PORT" --config "$NANOBOT_CONFIG_PATH" &
