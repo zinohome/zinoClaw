@@ -99,6 +99,20 @@ def main() -> int:
         else:
             print(f"[patch] provider localhost fallback removed: {provider_file}")
 
+    # 3) Hot-reload provider/model after saving raw config.json in WebUI.
+    #    This avoids needing container restart for provider switch.
+    config_route_file = target_root / "api" / "routes" / "config.py"
+    text_rewrites += _replace_text(
+        config_route_file,
+        "    svc.config.__dict__.update(new_config.__dict__)\n\n    return {\"ok\": True, \"content\": content}",
+        "    svc.config.__dict__.update(new_config.__dict__)\n    svc.reload_provider()\n\n    return {\"ok\": True, \"content\": content}",
+    )
+    text_rewrites += _replace_regex(
+        config_route_file,
+        r"(svc\.config\.__dict__\.update\(new_config\.__dict__\)\n)(\s*return\s+\{\"ok\":\s*True,\s*\"content\":\s*content\})",
+        r"\1    svc.reload_provider()\n\n\2",
+    )
+
     if text_rewrites == 0:
         print(
             "[patch][warn] no text rewrites applied; "
