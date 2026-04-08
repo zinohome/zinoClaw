@@ -198,9 +198,10 @@ COPY docker-customize/deskclaw-resources/ /opt/deskclaw/resources/
 COPY patches/nanobot-webui/ /opt/patches/nanobot-webui/
 COPY docker-customize/scripts/apply_webui_patches.py /opt/patches/apply_webui_patches.py
 COPY docker-customize/scripts/start-deskclaw-webui.sh /usr/local/bin/start-deskclaw-webui
+COPY docker-customize/scripts/restart-deskclaw.sh /usr/local/bin/restart-deskclaw.sh
 
 RUN set -eux; \
-    chmod +x /usr/local/bin/start-deskclaw-webui /opt/patches/apply_webui_patches.py; \
+    chmod +x /usr/local/bin/start-deskclaw-webui /usr/local/bin/restart-deskclaw.sh /opt/patches/apply_webui_patches.py; \
     python3 -m venv /opt/deskclaw/gateway-venv; \
     /opt/deskclaw/gateway-venv/bin/pip install -U pip setuptools wheel; \
     WHEEL_PATH="$(ls /opt/deskclaw/resources/nanobot/nanobot_ai-*.whl | head -n 1)"; \
