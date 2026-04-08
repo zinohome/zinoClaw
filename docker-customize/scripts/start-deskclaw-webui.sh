@@ -69,6 +69,43 @@ if [ ! -f "$NANOBOT_CONFIG_PATH" ]; then
 EOF
 fi
 
+# 幂等补齐 DeskClaw MCP server 配置（不覆盖用户其他配置）。
+# 某些历史 config.json 没有这段，会导致 DeskClaw 工具不可用。
+"${WEBUI_VENV}/bin/python" - <<PY
+import json
+from pathlib import Path
+
+cfg_path = Path("${NANOBOT_CONFIG_PATH}")
+cfg = {}
+if cfg_path.exists():
+    try:
+        cfg = json.loads(cfg_path.read_text(encoding="utf-8"))
+    except Exception:
+        cfg = {}
+
+tools = cfg.setdefault("tools", {})
+mcp_servers = tools.setdefault("mcp_servers", {})
+deskclaw = mcp_servers.get("deskclaw")
+
+desired = {
+    "type": "streamableHttp",
+    "url": "http://${GATEWAY_HOST}:${GATEWAY_PORT}/deskclaw/mcp",
+    "tool_timeout": 30,
+    "enabled_tools": ["*"],
+}
+
+if not isinstance(deskclaw, dict):
+    mcp_servers["deskclaw"] = desired
+else:
+    deskclaw.setdefault("type", "streamableHttp")
+    deskclaw["url"] = desired["url"]
+    deskclaw.setdefault("tool_timeout", 30)
+    deskclaw.setdefault("enabled_tools", ["*"])
+
+cfg_path.parent.mkdir(parents=True, exist_ok=True)
+cfg_path.write_text(json.dumps(cfg, ensure_ascii=False, indent=2), encoding="utf-8")
+PY
+
 echo "[deskclaw] gateway: http://${GATEWAY_HOST}:${GATEWAY_PORT}"
 echo "[deskclaw] webui:   http://${WEBUI_HOST}:${WEBUI_PORT}"
 
