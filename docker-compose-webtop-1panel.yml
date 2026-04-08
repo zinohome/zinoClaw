@@ -1,0 +1,32 @@
+services:
+  webtop:
+    image: harbor.naivehero.top:8443/baseimages/linuxserver/webtop:zino-kde-custom
+    container_name: webtop
+    hostname: webtop
+    shm_size: '1gb'
+    security_opt:
+      - seccomp:unconfined
+      - no-new-privileges:false
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Asia/Shanghai
+      - CUSTOM_USER=zhangjun
+      - PASSWORD=bgt56yhn@Passw0rd
+      - LC_ALL=zh_CN.UTF-8
+      - NO_GAMEPAD=true
+      - DRINODE=/dev/dri/renderD128
+      - DRI_NODE=/dev/dri/renderD128
+      - TITLE=KDE-MFF7080
+    volumes:
+      - /data/webtop/config:/config
+    devices:
+      - /dev/dri:/dev/dri
+    ports:
+      - 3001:3001
+    restart: unless-stopped
+    networks:
+      - 1panel-network
+networks:
+  1panel-network:
+    external: true
