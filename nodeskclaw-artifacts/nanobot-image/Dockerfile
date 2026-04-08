@@ -50,7 +50,7 @@ RUN chmod +x /opt/nanobot/docker-entrypoint.sh
 
 RUN echo "${IMAGE_VERSION}" > /opt/nanobot/.nanobot-version
 
-ENV PYTHONPATH="/opt/deskclaw/resources:${PYTHONPATH}" \
+ENV PYTHONPATH="/opt/deskclaw/resources" \
     DESKCLAW_ADAPTER_HOST=127.0.0.1 \
     DESKCLAW_ADAPTER_PORT=18790
 
