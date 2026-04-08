@@ -3,8 +3,37 @@ from __future__ import annotations
 
 import importlib.util
 import pathlib
+import re
 import shutil
 import sys
+
+
+def _replace_text(path: pathlib.Path, old: str, new: str) -> int:
+    if not path.exists():
+        return 0
+    try:
+        text = path.read_text(encoding="utf-8")
+    except Exception:
+        return 0
+    count = text.count(old)
+    if count <= 0:
+        return 0
+    path.write_text(text.replace(old, new), encoding="utf-8")
+    return count
+
+
+def _replace_regex(path: pathlib.Path, pattern: str, repl: str) -> int:
+    if not path.exists():
+        return 0
+    try:
+        text = path.read_text(encoding="utf-8")
+    except Exception:
+        return 0
+    new_text, count = re.subn(pattern, repl, text, flags=re.MULTILINE)
+    if count <= 0:
+        return 0
+    path.write_text(new_text, encoding="utf-8")
+    return count
 
 
 def main() -> int:
@@ -29,7 +58,59 @@ def main() -> int:
         applied += 1
         print(f"[patch] applied {rel}")
 
-    print(f"[patch] done, total={applied}")
+    text_rewrites = 0
+
+    # 1) Fix misleading config path shown in System Config page.
+    #    Frontend bundle is hashed, so rewrite every asset file that contains this literal.
+    target_old = "~/.nanobot/config.json"
+    target_new = "~/.deskclaw/nanobot/config.json"
+    for asset in (target_root / "web" / "dist" / "assets").glob("*"):
+        if not asset.is_file():
+            continue
+        text_rewrites += _replace_text(
+            asset,
+            target_old,
+            target_new,
+        )
+
+    # 2) Remove dangerous fallback for custom provider api_base.
+    #    Empty api_base should fail fast via provider validation logic, not silently
+    #    fall back to localhost:8000/v1.
+    provider_file = target_root / "patches" / "provider.py"
+    text_rewrites += _replace_text(
+        provider_file,
+        'api_base=config.get_api_base(model) or "http://localhost:8000/v1",',
+        "api_base=config.get_api_base(model),",
+    )
+    text_rewrites += _replace_regex(
+        provider_file,
+        r'api_base\s*=\s*config\.get_api_base\(model\)\s*or\s*["\']http://localhost:8000/v1["\']\s*,',
+        "api_base=config.get_api_base(model),",
+    )
+
+    # Validate the fallback was actually removed.
+    if provider_file.exists():
+        provider_text = provider_file.read_text(encoding="utf-8", errors="ignore")
+        if 'http://localhost:8000/v1' in provider_text:
+            print(
+                "[patch][warn] provider localhost fallback still present: "
+                f"{provider_file}"
+            )
+        else:
+            print(f"[patch] provider localhost fallback removed: {provider_file}")
+
+    if text_rewrites == 0:
+        print(
+            "[patch][warn] no text rewrites applied; "
+            "check whether upstream bundle/layout changed"
+        )
+    else:
+        print(
+            f"[patch] rewrote config title literal: "
+            f"'{target_old}' -> '{target_new}'"
+        )
+
+    print(f"[patch] done, total={applied}, rewrites={text_rewrites}")
     return 0
 
 
