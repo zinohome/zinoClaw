@@ -1,0 +1,46 @@
+services:
+  webtop:
+    image: harbor.naivehero.top:8443/baseimages/linuxserver/webtop:zino-kde-custom
+    container_name: webtop-deskclaw
+    hostname: webtop
+    shm_size: "1gb"
+    security_opt:
+      - seccomp:unconfined
+      - no-new-privileges:false
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Asia/Shanghai
+      - CUSTOM_USER=zhangjun
+      - PASSWORD=change-me
+      - LC_ALL=zh_CN.UTF-8
+      - NO_GAMEPAD=true
+      - DRINODE=/dev/dri/renderD128
+      - DRI_NODE=/dev/dri/renderD128
+      - TITLE=KDE-DeskClaw
+      - DESKCLAW_HOME=/config/.deskclaw
+      - DESKCLAW_ADAPTER_HOST=127.0.0.1
+      - DESKCLAW_ADAPTER_PORT=18790
+      - WEBUI_PORT=18780
+      - WEBUI_HOST=0.0.0.0
+      - WEBUI_USE_DESKCLAW_GATEWAY=true
+      # 你自己的模型配置（建议用 1Panel/服务器环境变量管理）
+      - DESKCLAW_MODEL=qwen3.5-plus
+      - DESKCLAW_API_BASE=
+      - DESKCLAW_API_KEY=
+    volumes:
+      - /data/webtop/config:/config
+    devices:
+      - /dev/dri:/dev/dri
+    ports:
+      - 3001:3001
+      - 18780:18780
+      - 18790:18790
+    restart: unless-stopped
+    networks:
+      - 1panel-network
+    command: ["/bin/bash", "-lc", "/usr/local/bin/start-deskclaw-webui"]
+
+networks:
+  1panel-network:
+    external: true
