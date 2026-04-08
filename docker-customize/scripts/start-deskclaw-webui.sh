@@ -22,7 +22,10 @@ SKILLS_DST="${DESKCLAW_NANOBOT_HOME}/workspace/skills"
 GATEWAY_PID=""
 WEBUI_PID=""
 _SHUTTING_DOWN=0
+LOCK_FILE="${DESKCLAW_HOME}/run/start.lock"
+LOCK_WAIT_SECONDS="${DESKCLAW_LOCK_WAIT_SECONDS:-120}"
 mkdir -p "$DESKCLAW_HOME" "$DESKCLAW_NANOBOT_HOME" "$(dirname "$NANOBOT_CONFIG_PATH")"
+mkdir -p "${DESKCLAW_HOME}/run"
 chown -R abc:abc "$DESKCLAW_HOME" || true
 
 cleanup_listen_port() {
@@ -83,6 +86,15 @@ on_term() {
 
 trap on_term TERM INT
 trap shutdown_children EXIT
+
+# 防并发拉起：同一时刻只允许一个 start-deskclaw-webui.sh 实例进入启动区。
+# 采用阻塞等待锁，避免使用 -n 抢锁失败直接退出，造成“一个都没起来”的窗口。
+exec 9>"$LOCK_FILE"
+if ! flock -w "$LOCK_WAIT_SECONDS" 9; then
+  echo "[deskclaw] failed to acquire startup lock within ${LOCK_WAIT_SECONDS}s: $LOCK_FILE" >&2
+  exit 1
+fi
+echo "[deskclaw] startup lock acquired: $LOCK_FILE"
 
 # 幂等同步内置 skills：只补缺失，不覆盖用户已有修改
 if [ -d "$SKILLS_SRC" ]; then
