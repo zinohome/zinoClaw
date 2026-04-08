@@ -84,8 +84,22 @@ if cfg_path.exists():
         cfg = {}
 
 tools = cfg.setdefault("tools", {})
-mcp_servers = tools.setdefault("mcp_servers", {})
-deskclaw = mcp_servers.get("deskclaw")
+
+# 兼容两种字段风格，避免同时写出 mcpServers + mcp_servers
+snake = tools.get("mcp_servers")
+camel = tools.get("mcpServers")
+
+if isinstance(camel, dict):
+    mcp_map = camel
+    map_style = "camel"
+elif isinstance(snake, dict):
+    mcp_map = snake
+    map_style = "snake"
+else:
+    mcp_map = tools.setdefault("mcp_servers", {})
+    map_style = "snake"
+
+deskclaw = mcp_map.get("deskclaw")
 
 desired = {
     "type": "streamableHttp",
@@ -95,12 +109,18 @@ desired = {
 }
 
 if not isinstance(deskclaw, dict):
-    mcp_servers["deskclaw"] = desired
+    mcp_map["deskclaw"] = desired
 else:
     deskclaw.setdefault("type", "streamableHttp")
     deskclaw["url"] = desired["url"]
     deskclaw.setdefault("tool_timeout", 30)
     deskclaw.setdefault("enabled_tools", ["*"])
+
+# 若历史上两套键都存在，清理另一套，避免重复
+if map_style == "camel":
+    tools.pop("mcp_servers", None)
+else:
+    tools.pop("mcpServers", None)
 
 cfg_path.parent.mkdir(parents=True, exist_ok=True)
 cfg_path.write_text(json.dumps(cfg, ensure_ascii=False, indent=2), encoding="utf-8")
