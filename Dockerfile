@@ -205,6 +205,13 @@ RUN set -eux; \
     /opt/deskclaw/gateway-venv/bin/pip install -U pip setuptools wheel; \
     WHEEL_PATH="$(ls /opt/deskclaw/resources/nanobot/nanobot_ai-*.whl | head -n 1)"; \
     /opt/deskclaw/gateway-venv/bin/pip install "$WHEEL_PATH"; \
+    /opt/deskclaw/gateway-venv/bin/pip install \
+      "fastapi>=0.115.0" \
+      "uvicorn>=0.34.0" \
+      "websockets>=14.0" \
+      "wecom-aibot-sdk-python>=0.1.5" \
+      "qrcode[pil]>=8.0" \
+      "pycryptodome>=3.20.0"; \
     python3 -m venv /opt/deskclaw/webui-venv; \
     /opt/deskclaw/webui-venv/bin/pip install -U pip setuptools wheel; \
     /opt/deskclaw/webui-venv/bin/pip install nanobot-webui; \

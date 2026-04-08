@@ -91,6 +91,21 @@ s6-setuidgid abc env \
   "${GATEWAY_VENV}/bin/python" -m gateway.server &
 GATEWAY_PID=$!
 
+# 等待 gateway 健康，再启动 webui，避免 MCP 初始化抢跑
+for _ in $(seq 1 60); do
+  if curl -fsS "http://${GATEWAY_HOST}:${GATEWAY_PORT}/health" >/dev/null 2>&1; then
+    break
+  fi
+  sleep 1
+done
+
+if ! curl -fsS "http://${GATEWAY_HOST}:${GATEWAY_PORT}/health" >/dev/null 2>&1; then
+  echo "[deskclaw] gateway health check failed: http://${GATEWAY_HOST}:${GATEWAY_PORT}/health" >&2
+  kill -TERM "$GATEWAY_PID" 2>/dev/null || true
+  wait "$GATEWAY_PID" 2>/dev/null || true
+  exit 1
+fi
+
 s6-setuidgid abc "${WEBUI_VENV}/bin/nanobot" webui start --webui-only --host "$WEBUI_HOST" --port "$WEBUI_PORT" --config "$NANOBOT_CONFIG_PATH" &
 WEBUI_PID=$!
 
