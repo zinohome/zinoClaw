@@ -19,6 +19,9 @@ WEBUI_VENV="/opt/deskclaw/webui-venv"
 GATEWAY_PYTHONPATH="/opt/deskclaw/resources"
 SKILLS_SRC="/opt/deskclaw/resources/skills"
 SKILLS_DST="${DESKCLAW_NANOBOT_HOME}/workspace/skills"
+GATEWAY_PID=""
+WEBUI_PID=""
+_SHUTTING_DOWN=0
 mkdir -p "$DESKCLAW_HOME" "$DESKCLAW_NANOBOT_HOME" "$(dirname "$NANOBOT_CONFIG_PATH")"
 chown -R abc:abc "$DESKCLAW_HOME" || true
 
@@ -49,6 +52,37 @@ cleanup_listen_port() {
   kill -KILL ${pids} 2>/dev/null || true
   sleep 0.2
 }
+
+shutdown_children() {
+  if [ "$_SHUTTING_DOWN" -eq 1 ]; then
+    return 0
+  fi
+  _SHUTTING_DOWN=1
+
+  local pids_to_kill=""
+  if [ -n "${GATEWAY_PID:-}" ] && kill -0 "$GATEWAY_PID" 2>/dev/null; then
+    pids_to_kill="${pids_to_kill} $GATEWAY_PID"
+  fi
+  if [ -n "${WEBUI_PID:-}" ] && kill -0 "$WEBUI_PID" 2>/dev/null; then
+    pids_to_kill="${pids_to_kill} $WEBUI_PID"
+  fi
+
+  if [ -n "$pids_to_kill" ]; then
+    echo "[deskclaw] shutting down child process(es):${pids_to_kill}"
+    # shellcheck disable=SC2086
+    kill -TERM $pids_to_kill 2>/dev/null || true
+    # shellcheck disable=SC2086
+    wait $pids_to_kill 2>/dev/null || true
+  fi
+}
+
+on_term() {
+  shutdown_children
+  exit 0
+}
+
+trap on_term TERM INT
+trap shutdown_children EXIT
 
 # 幂等同步内置 skills：只补缺失，不覆盖用户已有修改
 if [ -d "$SKILLS_SRC" ]; then
@@ -201,6 +235,5 @@ WEBUI_PID=$!
 wait -n "$GATEWAY_PID" "$WEBUI_PID"
 EXIT_CODE=$?
 
-kill -TERM "$GATEWAY_PID" "$WEBUI_PID" 2>/dev/null || true
-wait "$GATEWAY_PID" "$WEBUI_PID" 2>/dev/null || true
+shutdown_children
 exit "$EXIT_CODE"
