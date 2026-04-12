@@ -1,9 +1,9 @@
 {
   "slug": "deskclaw-xlsx",
-  "version": "2.0.1",
-  "registry": "https://skills.nodeskai.com",
-  "installedAt": "2026-04-04T01:28:12.688Z",
-  "inspectName": "Excel 表格工具（DeskClaw XLSX）",
-  "inspectDescription": "DeskClaw 自研 Excel 全能工具。支持创建、编辑、数据分析三大工作流，内置公式重算与错误扫描（LibreOffice）、金融建模规范、pandas 数据分析集成。",
-  "inspectVersion": "2.0.1"
+  "version": "3.0.0",
+  "registry": "https://skills.deskclaw.me",
+  "installedAt": "2026-04-10T15:08:49.443Z",
+  "inspectName": "官方Excel 表格工具（DeskClaw XLSX）",
+  "inspectDescription": "DeskClaw 自研 Excel 全能工具。基于 openpyxl 与 LibreOffice 公式引擎，支持创建、读取、编辑、公式重算与校验、unpack/pack 高级编辑、列行插入、pandas 数据分析与财务建模规范。",
+  "inspectVersion": "3.0.0"
 }

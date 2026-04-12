@@ -1,9 +1,9 @@
 {
   "slug": "image-generation",
-  "version": "1.10.0",
-  "registry": "https://skills.nodeskai.com",
-  "installedAt": "2026-04-04T01:28:09.054Z",
+  "version": "1.10.2",
+  "registry": "https://skills.deskclaw.me",
+  "installedAt": "2026-04-10T15:08:50.577Z",
   "inspectName": "图片生成（Image Generation）",
   "inspectDescription": "文生图 + 图生图：Seedream V5.0 Lite / MiniDesk Pro / MiniDesk 2，支持多比例多分辨率，最多 14 张参考图。",
-  "inspectVersion": "1.10.0"
+  "inspectVersion": "1.10.2"
 }

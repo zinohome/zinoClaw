@@ -1,326 +1,173 @@
 ---
-name: xlsx
 slug: deskclaw-xlsx
-version: 2.0.1
+version: 3.0.0
 displayName: Excel 表格工具（DeskClaw XLSX）
-summary: DeskClaw 自研 Excel 全能工具。支持创建、编辑、数据分析三大工作流，内置公式重算与错误扫描（LibreOffice）、金融建模规范、pandas 数据分析集成。
-description: "Comprehensive spreadsheet creation, editing, and analysis. Create with openpyxl (formulas, formatting, charts), analyze with pandas, recalculate formulas via LibreOffice. Financial modeling standards included. Triggers: Excel, XLSX, XLS, XLSM, CSV, TSV, spreadsheet, 表格, 电子表格."
-license: MIT
-tags: office, xlsx, excel, spreadsheet, formulas, pandas, charts, financial-modeling
-metadata:
-  category: productivity
-  author: DeskClaw
-  sources:
-    - https://openpyxl.readthedocs.io/
-    - https://pandas.pydata.org/
+summary: "DeskClaw 自研 Excel 全能工具。基于 openpyxl 与 LibreOffice 公式引擎，支持创建、读取、编辑、公式重算与校验、unpack/pack 高级编辑、列行插入、pandas 数据分析与财务建模规范。"
+tags: office, xlsx, excel, spreadsheet, formulas, pandas, openpyxl, libreoffice, financial-modeling
+name: deskclaw-xlsx
+description: "专业 Excel 文件（.xlsx）创建、读取、编辑、公式验证和格式化。覆盖数据表、财务模型、报表、统计分析等场景。当用户要求创建、编辑、分析任何 Excel 表格时使用此技能。"
+setup: bootstrap.py
 ---
 
+# DeskClaw XLSX v3.0
 
-# Requirements for Outputs
+创建、读取、编辑和验证 Excel 表格。
 
-## All Excel files
-
-### Zero Formula Errors
-- Every Excel model MUST be delivered with ZERO formula errors (#REF!, #DIV/0!, #VALUE!, #N/A, #NAME?)
-
-### Preserve Existing Templates (when updating templates)
-- Study and EXACTLY match existing format, style, and conventions when modifying files
-- Never impose standardized formatting on files with established patterns
-- Existing template conventions ALWAYS override these guidelines
-
-## Financial models
-
-### Color Coding Standards
-Unless otherwise stated by the user or existing template
-
-#### Industry-Standard Color Conventions
-- **Blue text (RGB: 0,0,255)**: Hardcoded inputs, and numbers users will change for scenarios
-- **Black text (RGB: 0,0,0)**: ALL formulas and calculations
-- **Green text (RGB: 0,128,0)**: Links pulling from other worksheets within same workbook
-- **Red text (RGB: 255,0,0)**: External links to other files
-- **Yellow background (RGB: 255,255,0)**: Key assumptions needing attention or cells that need to be updated
-
-### Number Formatting Standards
-
-#### Required Format Rules
-- **Years**: Format as text strings (e.g., "2024" not "2,024")
-- **Currency**: Use $#,##0 format; ALWAYS specify units in headers ("Revenue ($mm)")
-- **Zeros**: Use number formatting to make all zeros "-", including percentages (e.g., "$#,##0;($#,##0);-")
-- **Percentages**: Default to 0.0% format (one decimal)
-- **Multiples**: Format as 0.0x for valuation multiples (EV/EBITDA, P/E)
-- **Negative numbers**: Use parentheses (123) not minus -123
-
-### Formula Construction Rules
-
-#### Assumptions Placement
-- Place ALL assumptions (growth rates, margins, multiples, etc.) in separate assumption cells
-- Use cell references instead of hardcoded values in formulas
-- Example: Use =B5*(1+$B$6) instead of =B5*1.05
-
-#### Formula Error Prevention
-- Verify all cell references are correct
-- Check for off-by-one errors in ranges
-- Ensure consistent formulas across all projection periods
-- Test with edge cases (zero values, negative numbers)
-- Verify no unintended circular references
-
-#### Documentation Requirements for Hardcodes
-- Comment or in cells beside (if end of table). Format: "Source: [System/Document], [Date], [Specific Reference], [URL if applicable]"
-- Examples:
-  - "Source: Company 10-K, FY2024, Page 45, Revenue Note, [SEC EDGAR URL]"
-  - "Source: Company 10-Q, Q2 2025, Exhibit 99.1, [SEC EDGAR URL]"
-  - "Source: Bloomberg Terminal, 8/15/2025, AAPL US Equity"
-  - "Source: FactSet, 8/20/2025, Consensus Estimates Screen"
-
-# XLSX creation, editing, and analysis
-
-## Overview
-
-A user may ask you to create, edit, or analyze the contents of an .xlsx file. You have different tools and workflows available for different tasks.
-
-## Important Requirements
-
-**LibreOffice Required for Formula Recalculation**: You can assume LibreOffice is installed for recalculating formula values using the `scripts/recalc.py` script. The script automatically configures LibreOffice on first run
-
-## Reading and analyzing data
-
-### Data analysis with pandas
-For data analysis, visualization, and basic operations, use **pandas** which provides powerful data manipulation capabilities:
+## 第零步：Bootstrap
 
 ```python
-import pandas as pd
-
-# Read Excel
-df = pd.read_excel('file.xlsx')  # Default: first sheet
-all_sheets = pd.read_excel('file.xlsx', sheet_name=None)  # All sheets as dict
-
-# Analyze
-df.head()      # Preview data
-df.info()      # Column info
-df.describe()  # Statistics
-
-# Write Excel
-df.to_excel('output.xlsx', index=False)
+python bootstrap.py
 ```
 
-## Excel File Workflows
+幂等，已装跳过。检查：`python -c "import openpyxl; print('READY')"`
 
-## CRITICAL: Use Formulas, Not Hardcoded Values
+## 命令速查表（Agent 必读）
 
-**Always use Excel formulas instead of calculating values in Python and hardcoding them.** This ensures the spreadsheet remains dynamic and updateable.
+| 任务 | 方法 |
+|------|------|
+| 创建新表格 | `from openpyxl import Workbook; wb = Workbook()` → 添加数据/公式/格式 → `wb.save()` |
+| 读取分析 | `python scripts/xlsx_reader.py file.xlsx` 或 pandas |
+| 编辑已有文件 | `from openpyxl import load_workbook; wb = load_workbook('file.xlsx')` |
+| 添加列（带公式） | `python scripts/xlsx_add_column.py` |
+| 插入行 | `python scripts/xlsx_insert_row.py` |
+| 公式重算 | `python scripts/recalc.py output.xlsx`（**创建后必须执行**） |
+| 公式验证 | `python scripts/formula_check.py file.xlsx --json` |
+| 保存路径 | `wb.save(os.path.expanduser('~/Desktop/output.xlsx'))` |
 
-### ❌ WRONG - Hardcoding Calculated Values
-```python
-# Bad: Calculating in Python and hardcoding result
-total = df['Sales'].sum()
-sheet['B10'] = total  # Hardcodes 5000
-
-# Bad: Computing growth rate in Python
-growth = (df.iloc[-1]['Revenue'] - df.iloc[0]['Revenue']) / df.iloc[0]['Revenue']
-sheet['C5'] = growth  # Hardcodes 0.15
-
-# Bad: Python calculation for average
-avg = sum(values) / len(values)
-sheet['D20'] = avg  # Hardcodes 42.5
-```
-
-### ✅ CORRECT - Using Excel Formulas
-```python
-# Good: Let Excel calculate the sum
-sheet['B10'] = '=SUM(B2:B9)'
-
-# Good: Growth rate as Excel formula
-sheet['C5'] = '=(C4-C2)/C2'
-
-# Good: Average using Excel function
-sheet['D20'] = '=AVERAGE(D2:D19)'
-```
-
-This applies to ALL calculations - totals, percentages, ratios, differences, etc. The spreadsheet should be able to recalculate when source data changes.
-
-## Common Workflow
-1. **Choose tool**: pandas for data, openpyxl for formulas/formatting
-2. **Create/Load**: Create new workbook or load existing file
-3. **Modify**: Add/edit data, formulas, and formatting
-4. **Save**: Write to file
-5. **Recalculate formulas (MANDATORY IF USING FORMULAS)**: Use the recalc.py script
-   ```bash
-   python scripts/recalc.py output.xlsx
-   ```
-6. **Verify and fix any errors**: 
-   - The script returns JSON with error details
-   - If `status` is `errors_found`, check `error_summary` for specific error types and locations
-   - Fix the identified errors and recalculate again
-   - Common errors to fix:
-     - `#REF!`: Invalid cell references
-     - `#DIV/0!`: Division by zero
-     - `#VALUE!`: Wrong data type in formula
-     - `#NAME?`: Unrecognized formula name
-
-### Creating new Excel files
+## 创建新表格
 
 ```python
-# Using openpyxl for formulas and formatting
 from openpyxl import Workbook
-from openpyxl.styles import Font, PatternFill, Alignment
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+import os
 
 wb = Workbook()
-sheet = wb.active
+ws = wb.active
+ws.title = "数据表"
 
-# Add data
-sheet['A1'] = 'Hello'
-sheet['B1'] = 'World'
-sheet.append(['Row', 'of', 'data'])
+# 表头
+headers = ["姓名", "部门", "销售额", "占比"]
+header_font = Font(bold=True, color="FFFFFF", name="Microsoft YaHei")
+header_fill = PatternFill("solid", fgColor="4472C4")
+for col, h in enumerate(headers, 1):
+    cell = ws.cell(row=1, column=col, value=h)
+    cell.font = header_font
+    cell.fill = header_fill
+    cell.alignment = Alignment(horizontal="center")
 
-# Add formula
-sheet['B2'] = '=SUM(A1:A10)'
+# 数据
+data = [["张三", "销售部", 85000], ["李四", "市场部", 72000]]
+for r, row_data in enumerate(data, 2):
+    for c, val in enumerate(row_data, 1):
+        ws.cell(row=r, column=c, value=val)
 
-# Formatting
-sheet['A1'].font = Font(bold=True, color='FF0000')
-sheet['A1'].fill = PatternFill('solid', start_color='FFFF00')
-sheet['A1'].alignment = Alignment(horizontal='center')
+# 公式（绝对不要硬编码计算结果！）
+ws['C4'] = '=SUM(C2:C3)'
+ws['C4'].font = Font(bold=True)
+for r in range(2, 4):
+    ws.cell(row=r, column=4, value=f'=C{r}/C$4')
+    ws.cell(row=r, column=4).number_format = '0.0%'
 
-# Column width
-sheet.column_dimensions['A'].width = 20
+# 列宽
+for col in ["A", "B", "C", "D"]:
+    ws.column_dimensions[col].width = 15
 
-wb.save('output.xlsx')
+wb.save(os.path.expanduser("~/Desktop/output.xlsx"))
 ```
 
-### Editing existing Excel files
+创建后**必须**执行公式重算：
+```bash
+python scripts/recalc.py ~/Desktop/output.xlsx
+```
+
+## 核心规则
+
+### 1. 公式优先（最重要）
 
 ```python
-# Using openpyxl to preserve formulas and formatting
-from openpyxl import load_workbook
+# ❌ 错误
+total = sum([85000, 72000])
+ws['C4'] = total  # 硬编码
 
-# Load existing file
-wb = load_workbook('existing.xlsx')
-sheet = wb.active  # or wb['SheetName'] for specific sheet
-
-# Working with multiple sheets
-for sheet_name in wb.sheetnames:
-    sheet = wb[sheet_name]
-    print(f"Sheet: {sheet_name}")
-
-# Modify cells
-sheet['A1'] = 'New Value'
-sheet.insert_rows(2)  # Insert row at position 2
-sheet.delete_cols(3)  # Delete column 3
-
-# Add new sheet
-new_sheet = wb.create_sheet('NewSheet')
-new_sheet['A1'] = 'Data'
-
-wb.save('modified.xlsx')
+# ✅ 正确
+ws['C4'] = '=SUM(C2:C3)'
 ```
 
-## Recalculating formulas
+**每个计算值都必须用 Excel 公式。** 硬编码的数字无法在 Excel 中更新。
 
-Excel files created or modified by openpyxl contain formulas as strings but not calculated values. Use the provided `recalc.py` script to recalculate formulas:
+### 2. 公式重算（必须）
 
+openpyxl 写入的公式只是字符串，保存后必须执行 `scripts/recalc.py` 让值生效。如果有公式错误（#REF!、#DIV/0!），recalc 会返回详细位置。
+
+### 3. 编辑完整性
+
+- **创建**：`Workbook()` 新建
+- **编辑已有文件**：**必须** `load_workbook('existing.xlsx')`，绝对不要 `Workbook()` 新建
+- 输出必须保留原有所有 sheet 和数据
+- 保存后用 `xlsx_reader.py` 验证
+
+### 4. 财务配色
+
+| 角色 | 颜色 | 用法 |
+|------|------|------|
+| 输入/假设 | 蓝色 `Font(color="0000FF")` | 用户会改的数字 |
+| 公式结果 | 黑色 `Font(color="000000")` | 所有计算值 |
+| 跨 Sheet 引用 | 绿色 `Font(color="00B050")` | `='Sheet2'!A1` 类公式 |
+
+### 5. 数字格式
+
+```python
+cell.number_format = '¥#,##0'      # 货币
+cell.number_format = '0.0%'         # 百分比
+cell.number_format = '@'            # 文本（年份用这个，避免 2026 变 2,026）
+cell.number_format = '#,##0;(#,##0);"-"'  # 负数括号，零用横线
+```
+
+## 任务路由
+
+```
+用户任务
+├─ 读取/分析 → xlsx_reader.py + pandas
+├─ 从零创建 → openpyxl Workbook() → save → recalc.py
+├─ 编辑已有文件
+│   ├─ 简单修改 → openpyxl load_workbook()
+│   └─ 添加列/插入行 → scripts/xlsx_add_column.py, xlsx_insert_row.py
+├─ 修复公式 → XML unpack → 修 <f> 节点 → pack
+└─ 验证公式 → formula_check.py（静态）+ recalc.py（动态）
+```
+
+## 编辑已有文件的工具脚本
+
+### 添加列（带公式、样式自动复制）
 ```bash
-python scripts/recalc.py <excel_file> [timeout_seconds]
+python scripts/xlsx_unpack.py input.xlsx /tmp/xlsx_work/
+python scripts/xlsx_add_column.py /tmp/xlsx_work/ --col G \
+    --sheet "Sheet1" --header "占比" \
+    --formula '=F{row}/$F$10' --formula-rows 2:9 \
+    --total-row 10 --total-formula '=SUM(G2:G9)' --numfmt '0.0%'
+python scripts/xlsx_pack.py /tmp/xlsx_work/ output.xlsx
 ```
 
-Example:
+### 插入行（自动移位、更新 SUM 公式）
 ```bash
-python scripts/recalc.py output.xlsx 30
+python scripts/xlsx_unpack.py input.xlsx /tmp/xlsx_work/
+python scripts/xlsx_insert_row.py /tmp/xlsx_work/ --at 5 \
+    --sheet "Sheet1" --text A=新项目 \
+    --values B=3000 C=3000 --formula 'D=SUM(B{row}:C{row})'
+python scripts/xlsx_pack.py /tmp/xlsx_work/ output.xlsx
 ```
 
-The script:
-- Automatically sets up LibreOffice macro on first run
-- Recalculates all formulas in all sheets
-- Scans ALL cells for Excel errors (#REF!, #DIV/0!, etc.)
-- Returns JSON with detailed error locations and counts
-- Works on both Linux and macOS
+## 参考文档索引
 
-## Formula Verification Checklist
-
-Quick checks to ensure formulas work correctly:
-
-### Essential Verification
-- [ ] **Test 2-3 sample references**: Verify they pull correct values before building full model
-- [ ] **Column mapping**: Confirm Excel columns match (e.g., column 64 = BL, not BK)
-- [ ] **Row offset**: Remember Excel rows are 1-indexed (DataFrame row 5 = Excel row 6)
-
-### Common Pitfalls
-- [ ] **NaN handling**: Check for null values with `pd.notna()`
-- [ ] **Far-right columns**: FY data often in columns 50+ 
-- [ ] **Multiple matches**: Search all occurrences, not just first
-- [ ] **Division by zero**: Check denominators before using `/` in formulas (#DIV/0!)
-- [ ] **Wrong references**: Verify all cell references point to intended cells (#REF!)
-- [ ] **Cross-sheet references**: Use correct format (Sheet1!A1) for linking sheets
-
-### Formula Testing Strategy
-- [ ] **Start small**: Test formulas on 2-3 cells before applying broadly
-- [ ] **Verify dependencies**: Check all cells referenced in formulas exist
-- [ ] **Test edge cases**: Include zero, negative, and very large values
-
-### Interpreting recalc.py Output
-The script returns JSON with error details:
-```json
-{
-  "status": "success",           // or "errors_found"
-  "total_errors": 0,              // Total error count
-  "total_formulas": 42,           // Number of formulas in file
-  "error_summary": {              // Only present if errors found
-    "#REF!": {
-      "count": 2,
-      "locations": ["Sheet1!B5", "Sheet1!C10"]
-    }
-  }
-}
-```
-
-## Best Practices
-
-### Library Selection
-- **pandas**: Best for data analysis, bulk operations, and simple data export
-- **openpyxl**: Best for complex formatting, formulas, and Excel-specific features
-
-### Working with openpyxl
-- Cell indices are 1-based (row=1, column=1 refers to cell A1)
-- Use `data_only=True` to read calculated values: `load_workbook('file.xlsx', data_only=True)`
-- **Warning**: If opened with `data_only=True` and saved, formulas are replaced with values and permanently lost
-- For large files: Use `read_only=True` for reading or `write_only=True` for writing
-- Formulas are preserved but not evaluated - use recalc.py to update values
-
-### Working with pandas
-- Specify data types to avoid inference issues: `pd.read_excel('file.xlsx', dtype={'id': str})`
-- For large files, read specific columns: `pd.read_excel('file.xlsx', usecols=['A', 'C', 'E'])`
-- Handle dates properly: `pd.read_excel('file.xlsx', parse_dates=['date_column'])`
-
-## Code Style Guidelines
-**IMPORTANT**: When generating Python code for Excel operations:
-- Write minimal, concise Python code without unnecessary comments
-- Avoid verbose variable names and redundant operations
-- Avoid unnecessary print statements
-
-**For Excel files themselves**:
-- Add comments to cells with complex formulas or important assumptions
-- Document data sources for hardcoded values
-- Include notes for key calculations and model sections
-
-## Dependencies
-
-读完本 SKILL.md 后，**立即静默安装缺失依赖，不要询问用户**。
-
-```bash
-# 核心（必装）
-pip install openpyxl pandas
-
-# 公式重算（需要 LibreOffice）
-# macOS
-brew install --cask libreoffice
-# Linux
-sudo apt-get install -y libreoffice
-# Windows
-winget install -e --id TheDocumentFoundation.LibreOffice
-```
-
-### 跨平台注意事项
-
-| 平台 | Python 命令 | LibreOffice 宏路径 |
-|------|-----------|-------------------|
-| macOS | `python3` | `~/Library/Application Support/LibreOffice/4/user/basic/Standard` |
-| Linux | `python3` | `~/.config/libreoffice/4/user/basic/Standard` |
-| Windows | `python` | `recalc.py` 暂不支持 Windows，可用 Excel 手动打开重算 |
+| 需求 | 文件 |
+|------|------|
+| 读取分析数据 | [read-analyze.md](references/read-analyze.md) |
+| 编辑 SOP | [edit_sop.md](references/edit_sop.md) |
+| 编辑 XML 模式 | [edit_patterns.md](references/edit_patterns.md) |
+| 编辑高级操作 | [edit_advanced.md](references/edit_advanced.md) |
+| 编辑规则 | [edit_rules.md](references/edit_rules.md) |
+| 修复公式 | [fix.md](references/fix.md) |
+| 财务格式标准 | [format_standards.md](references/format_standards.md) |
+| styles.xml 操作 | [format_styles.md](references/format_styles.md) |
+| 公式验证架构 | [validate.md](references/validate.md) |
+| 验证检查详情 | [validate_checks.md](references/validate_checks.md) |

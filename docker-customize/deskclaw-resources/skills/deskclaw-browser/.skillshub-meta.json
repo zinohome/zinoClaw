@@ -1,0 +1,9 @@
+{
+  "slug": "deskclaw-browser",
+  "version": "1.2.1",
+  "registry": "https://skills.deskclaw.me",
+  "installedAt": "2026-04-12T00:32:04.374Z",
+  "inspectName": "浏览器自动化（deskclaw-browser）",
+  "inspectDescription": "零配置，全自动安装，开箱即用的浏览器操控。",
+  "inspectVersion": "1.2.1"
+}

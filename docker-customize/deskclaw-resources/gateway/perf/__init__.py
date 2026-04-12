@@ -6,11 +6,13 @@ following the same pattern as ToolSecurityLayer.install().
 Patches:
   1. Per-tool result progress for UI                       (agent.py)
   2. Session history hard cap for get_history(0)            (agent.py)
-  3. Cached ToolRegistry.get_definitions()                 (agent.py)
-  4. Cached ContextBuilder.build_system_prompt()            (agent.py)
-  5. Non-blocking memory consolidation                     (agent.py)
-  6. Channel URL media pre-download                        (channels.py)
-  7. Feishu reaction auto-cleanup                          (channels.py)
+  3. Cached ContextBuilder.build_system_prompt()            (agent.py)
+  4. Channel URL media pre-download                        (channels.py)
+  5. Feishu reaction auto-cleanup                          (channels.py)
+
+Removed (now upstream):
+  - Cached ToolRegistry.get_definitions() — upstream PR #2205
+  - Non-blocking memory consolidation — upstream PR #2243 (fast_trim_if_needed)
 """
 
 from __future__ import annotations
@@ -22,9 +24,7 @@ from loguru import logger
 from .agent import (
     patch_tool_result_progress,
     patch_history_cap,
-    patch_tool_definitions_cache,
     patch_system_prompt_cache,
-    patch_nonblocking_consolidation,
 )
 from .channels import (
     patch_channel_url_media,
@@ -40,11 +40,9 @@ def install_perf_patches(agent_loop) -> None:
     _patches: list[tuple[str, ...]] = [
         ("tool_result_progress", lambda: patch_tool_result_progress(agent_loop)),
         ("history_cap",          patch_history_cap),
-        ("tool_definitions_cache", patch_tool_definitions_cache),
         ("system_prompt_cache",  patch_system_prompt_cache),
         ("channel_url_media",    patch_channel_url_media),
         ("feishu_reaction",      patch_feishu_reaction_cleanup),
-        ("nonblocking_consolidation", lambda: patch_nonblocking_consolidation(agent_loop)),
     ]
     for name, fn in _patches:
         try:

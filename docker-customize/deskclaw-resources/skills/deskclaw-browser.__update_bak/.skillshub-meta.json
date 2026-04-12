@@ -1,9 +1,0 @@
-{
-  "slug": "deskclaw-browser",
-  "version": "1.2.1",
-  "registry": "https://skills.nodeskai.com",
-  "installedAt": "2026-04-08T07:07:13.259Z",
-  "inspectName": "浏览器自动化（deskclaw-browser）",
-  "inspectDescription": "零配置，全自动安装，开箱即用的浏览器操控。",
-  "inspectVersion": "1.2.1"
-}

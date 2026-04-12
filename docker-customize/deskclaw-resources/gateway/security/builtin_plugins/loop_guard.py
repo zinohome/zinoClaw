@@ -1,4 +1,4 @@
-# version: 6
+# version: 8
 # author: DeskClaw
 """Loop guard — detect and stop stuck agent loops.
 
@@ -16,10 +16,18 @@ Config file: ~/.deskclaw/loop-guard.json
     "turn_reset_seconds": 60
   }
 
-Sensitivity presets override individual thresholds:
-  conservative: 3 / 5 / 20
+All threshold values are persisted in the config file.  Changing the
+"sensitivity" preset via UI / MCP tools writes the corresponding
+threshold values into the file.  Set "sensitivity" to "custom" to
+use your own threshold values without preset overrides.
+
+Sensitivity presets (max_duplicate_calls / max_consecutive_errors / max_failed_per_turn):
+  conservative: 2 / 3 / 15
   default:      3 / 5 / 25
   relaxed:      5 / 8 / 40
+
+The config file is hot-reloaded (mtime-based, ~2 s latency) so
+edits take effect without restarting the gateway.
 """
 
 from __future__ import annotations
@@ -28,13 +36,15 @@ import hashlib
 import json
 import os
 import re
+import sys
 import time
+import uuid
 from pathlib import Path
 
 _CONFIG_PATH = Path.home() / ".deskclaw" / "loop-guard.json"
 
 _PRESETS = {
-    "conservative": {"max_duplicate_calls": 3, "max_consecutive_errors": 5, "max_failed_per_turn": 20},
+    "conservative": {"max_duplicate_calls": 2, "max_consecutive_errors": 3, "max_failed_per_turn": 15},
     "default":      {"max_duplicate_calls": 3, "max_consecutive_errors": 5, "max_failed_per_turn": 25},
     "relaxed":      {"max_duplicate_calls": 5, "max_consecutive_errors": 8, "max_failed_per_turn": 40},
 }
@@ -49,25 +59,98 @@ _DEFAULTS = {
 }
 
 
+def _write_config_safe(cfg: dict) -> None:
+    """Persist config to disk, creating parent directories if needed."""
+    try:
+        _CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
+        _CONFIG_PATH.write_text(
+            json.dumps(cfg, indent=2, ensure_ascii=False),
+            encoding="utf-8",
+        )
+    except Exception:
+        pass
+
+
 def _safe_load_config() -> dict:
-    """Load config with graceful fallback."""
+    """Load config with graceful fallback.
+
+    Creates a complete config file on first run so users can see and
+    edit every threshold without touching the source code.
+    """
     cfg = dict(_DEFAULTS)
     try:
         if _CONFIG_PATH.exists():
-            user_cfg = json.loads(_CONFIG_PATH.read_text(encoding="utf-8"))
-            if "max_calls_per_turn" in user_cfg and "max_failed_per_turn" not in user_cfg:
-                user_cfg["max_failed_per_turn"] = user_cfg.pop("max_calls_per_turn")
-            cfg.update(user_cfg)
-            preset = _PRESETS.get(cfg.get("sensitivity", ""), {})
-            for k, v in preset.items():
-                if k not in user_cfg:
-                    cfg[k] = v
+            raw = json.loads(_CONFIG_PATH.read_text(encoding="utf-8"))
+            if "max_calls_per_turn" in raw and "max_failed_per_turn" not in raw:
+                raw["max_failed_per_turn"] = raw.pop("max_calls_per_turn")
+            cfg.update(raw)
+            if any(k not in raw for k in _DEFAULTS):
+                _write_config_safe(cfg)
+        else:
+            _write_config_safe(cfg)
     except Exception:
         pass
     return cfg
 
 
 _config = _safe_load_config()
+_CONFIG_CHECK_INTERVAL = 2.0
+
+try:
+    _config_mtime: float = _CONFIG_PATH.stat().st_mtime
+except OSError:
+    _config_mtime = 0.0
+_config_last_check: float = time.monotonic()
+
+
+def _get_config() -> dict:
+    """Return current config, hot-reloading from disk when file changes."""
+    global _config, _config_mtime, _config_last_check
+    now = time.monotonic()
+    if now - _config_last_check < _CONFIG_CHECK_INTERVAL:
+        return _config
+    _config_last_check = now
+    try:
+        mt = _CONFIG_PATH.stat().st_mtime
+        if mt != _config_mtime:
+            _config = _safe_load_config()
+            _config_mtime = mt
+    except OSError:
+        pass
+    return _config
+
+# ── Telemetry ──
+
+def _track_intervention(trigger: str, tool_name: str, count: int, threshold: int) -> None:
+    """Emit a loop_guard_intervention event to the telemetry pipeline."""
+    try:
+        mod = sys.modules.get("gateway.telemetry.collector")
+        if mod is None:
+            return
+        collector = getattr(mod, "_collector_ref", None)
+        if collector is None:
+            return
+        reporter = getattr(collector, "_reporter", None)
+        if reporter is None or not getattr(
+            getattr(collector, "_config", None), "enabled", False
+        ):
+            return
+        reporter.enqueue({
+            "name": "loop_guard_intervention",
+            "id": uuid.uuid4().hex,
+            "time": int(time.time() * 1000),
+            "properties": {
+                "trigger": trigger,
+                "tool_name": tool_name,
+                "count": count,
+                "threshold": threshold,
+                "sensitivity": _config.get("sensitivity", "default"),
+                "session_id": _get_session_id(),
+            },
+        })
+    except Exception:
+        pass
+
 
 # ── Session state ──
 
@@ -109,7 +192,7 @@ def _get_or_reset(sid: str) -> _TurnState:
             del _sessions[k]
 
     state = _sessions.get(sid)
-    reset_secs = _config.get("turn_reset_seconds", 60)
+    reset_secs = _get_config().get("turn_reset_seconds", 60)
     if state is None or (now - state.last_ts > reset_secs):
         state = _TurnState()
         _sessions[sid] = state
@@ -182,7 +265,8 @@ def _intervention(reason: str, detail: str) -> dict:
 # ── Hooks ──
 
 def on_before(tool_name: str, params: dict, **kwargs) -> dict | None:
-    if not _config.get("enabled", True):
+    cfg = _get_config()
+    if not cfg.get("enabled", True):
         return None
 
     try:
@@ -191,8 +275,9 @@ def on_before(tool_name: str, params: dict, **kwargs) -> dict | None:
         sid = "__global__"
     state = _get_or_reset(sid)
 
-    max_failed = _config.get("max_failed_per_turn", 25)
+    max_failed = cfg.get("max_failed_per_turn", 25)
     if state.failed_calls >= max_failed:
+        _track_intervention("failed_calls", tool_name, state.failed_calls, max_failed)
         return _intervention(
             f"failed_calls={state.failed_calls} >= {max_failed}",
             f"You have made {state.failed_calls} failed tool calls in this turn, "
@@ -200,8 +285,9 @@ def on_before(tool_name: str, params: dict, **kwargs) -> dict | None:
             f"Wrap up your current task and report your progress to the user.",
         )
 
-    max_errors = _config.get("max_consecutive_errors", 5)
+    max_errors = cfg.get("max_consecutive_errors", 5)
     if state.consecutive_errors >= max_errors:
+        _track_intervention("consecutive_errors", tool_name, state.consecutive_errors, max_errors)
         return _intervention(
             f"consecutive_errors={state.consecutive_errors} >= {max_errors}",
             f"{state.consecutive_errors} consecutive tool calls have failed. "
@@ -214,9 +300,10 @@ def on_before(tool_name: str, params: dict, **kwargs) -> dict | None:
         h = hashlib.md5(f"{tool_name}".encode()).hexdigest()[:16]
 
     dup_count = sum(1 for t, ah, _ in state.call_log if t == tool_name and ah == h)
-    max_dup = _config.get("max_duplicate_calls", 3)
+    max_dup = cfg.get("max_duplicate_calls", 3)
     if dup_count >= max_dup:
         brief = _brief_args(params)
+        _track_intervention("duplicate_calls", tool_name, dup_count + 1, max_dup)
         return _intervention(
             f"duplicate: {tool_name}({brief}) x{dup_count + 1}",
             f"You have called `{tool_name}({brief})` {dup_count + 1} times with "
@@ -268,7 +355,7 @@ def _looks_like_error(snippet: str) -> bool:
 
 
 def on_after(record) -> None:
-    if not _config.get("enabled", True):
+    if not _get_config().get("enabled", True):
         return
 
     try:

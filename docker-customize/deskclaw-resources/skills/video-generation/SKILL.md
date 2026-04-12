@@ -2,7 +2,7 @@
 name: video-generation
 description: Generate videos from text or images via NodeStudio API. Use when the user asks to create/generate a video, make a clip, animate an image, or do text-to-video / image-to-video.
 slug: video-generation
-version: 2.6.0
+version: 2.6.2
 displayName: 视频生成（Video Generation）
 summary: 文生视频、图生视频，基于 Seedance 2.0 模型，支持横竖屏、自定义时长与分辨率。
 tags: video, generation, text-to-video, image-to-video, seedance, nodestudio

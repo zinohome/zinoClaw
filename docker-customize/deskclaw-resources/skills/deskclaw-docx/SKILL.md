@@ -1,232 +1,149 @@
 ---
-name: docx
 slug: deskclaw-docx
-version: 2.0.0
-displayName: Word 文档操作（DeskClaw DOCX）
-summary: DeskClaw 自研 Word 全能工具。支持创建（docx-js）、编辑（OOXML）、红线审阅（Tracked Changes）三大工作流。内置 Document Library 高级 API、XML 校验、批量修订策略。
-description: "Comprehensive document creation, editing, and analysis with support for tracked changes, comments, formatting preservation, and text extraction. Create with docx-js, edit via OOXML manipulation, redline review with tracked changes. Triggers: Word, DOCX, DOC, document, 文档, Word文档."
-license: MIT
-tags: office, docx, word, document, tracked-changes, redlining, ooxml
-metadata:
-  category: productivity
-  author: DeskClaw
-  sources:
-    - https://docx.js.org/
-    - https://github.com/microsoft/markitdown
+version: 3.0.0
+displayName: 官方 Word 文档操作（DeskClaw DOCX）
+summary: "DeskClaw 自研 Word 全能工具。基于 docx-js 创建、python-docx 读取、OOXML unpack/repack 编辑、LibreOffice 校验与格式转换；支持红线审阅、评论、接受修订与中文排版规范。"
+tags: office, docx, word, document, ooxml, tracked-changes, docx-js, redlining
+name: deskclaw-docx
+description: "专业 Word 文档（.docx）创建、编辑和排版。覆盖报告、公文、合同、备忘录、学术论文等场景。当用户要求生成、编辑、修改任何 Word 文档时使用此技能。即使用户没有明确说 docx，只要任务暗示需要可打印的正式文档，就应使用此技能。"
+setup: bootstrap.py
 ---
 
-# DOCX creation, editing, and analysis
+# DeskClaw DOCX v3.0
 
-## Overview
+创建、编辑和排版 Word 文档。创建用 docx-js（JavaScript），编辑用 unpack/XML/repack 工具链。
 
-A user may ask you to create, edit, or analyze the contents of a .docx file. A .docx file is essentially a ZIP archive containing XML files and other resources that you can read or edit. You have different tools and workflows available for different tasks.
+## 第零步：Bootstrap
 
-## Workflow Decision Tree
-
-### Reading/Analyzing Content
-Use "Text extraction" or "Raw XML access" sections below
-
-### Creating New Document
-Use "Creating a new Word document" workflow
-
-### Editing Existing Document
-- **Your own document + simple changes**
-  Use "Basic OOXML editing" workflow
-
-- **Someone else's document**
-  Use **"Redlining workflow"** (recommended default)
-
-- **Legal, academic, business, or government docs**
-  Use **"Redlining workflow"** (required)
-
-## Reading and analyzing content
-
-### Text extraction
-If you just need to read the text contents of a document, you should convert the document to markdown using pandoc. Pandoc provides excellent support for preserving document structure and can show tracked changes:
-
-```bash
-# Convert document to markdown with tracked changes
-pandoc --track-changes=all path-to-file.docx -o output.md
-# Options: --track-changes=accept/reject/all
-```
-
-### Raw XML access
-You need raw XML access for: comments, complex formatting, document structure, embedded media, and metadata. For any of these features, you'll need to unpack a document and read its raw XML contents.
-
-#### Unpacking a file
-`python ooxml/scripts/unpack.py <office_file> <output_directory>`
-
-#### Key file structures
-* `word/document.xml` - Main document contents
-* `word/comments.xml` - Comments referenced in document.xml
-* `word/media/` - Embedded images and media files
-* Tracked changes use `<w:ins>` (insertions) and `<w:del>` (deletions) tags
-
-## Creating a new Word document
-
-When creating a new Word document from scratch, use **docx-js**, which allows you to create Word documents using JavaScript/TypeScript.
-
-### Workflow
-1. **MANDATORY - READ ENTIRE FILE**: Read [`docx-js.md`](docx-js.md) (~500 lines) completely from start to finish. **NEVER set any range limits when reading this file.** Read the full file content for detailed syntax, critical formatting rules, and best practices before proceeding with document creation.
-2. Create a JavaScript/TypeScript file using Document, Paragraph, TextRun components (You can assume all dependencies are installed, but if not, refer to the dependencies section below)
-3. Export as .docx using Packer.toBuffer()
-
-## Editing an existing Word document
-
-When editing an existing Word document, use the **Document library** (a Python library for OOXML manipulation). The library automatically handles infrastructure setup and provides methods for document manipulation. For complex scenarios, you can access the underlying DOM directly through the library.
-
-### Workflow
-1. **MANDATORY - READ ENTIRE FILE**: Read [`ooxml.md`](ooxml.md) (~600 lines) completely from start to finish. **NEVER set any range limits when reading this file.** Read the full file content for the Document library API and XML patterns for directly editing document files.
-2. Unpack the document: `python ooxml/scripts/unpack.py <office_file> <output_directory>`
-3. Create and run a Python script using the Document library (see "Document Library" section in ooxml.md)
-4. Pack the final document: `python ooxml/scripts/pack.py <input_directory> <office_file>`
-
-The Document library provides both high-level methods for common operations and direct DOM access for complex scenarios.
-
-## Redlining workflow for document review
-
-This workflow allows you to plan comprehensive tracked changes using markdown before implementing them in OOXML. **CRITICAL**: For complete tracked changes, you must implement ALL changes systematically.
-
-**Batching Strategy**: Group related changes into batches of 3-10 changes. This makes debugging manageable while maintaining efficiency. Test each batch before moving to the next.
-
-**Principle: Minimal, Precise Edits**
-When implementing tracked changes, only mark text that actually changes. Repeating unchanged text makes edits harder to review and appears unprofessional. Break replacements into: [unchanged text] + [deletion] + [insertion] + [unchanged text]. Preserve the original run's RSID for unchanged text by extracting the `<w:r>` element from the original and reusing it.
-
-Example - Changing "30 days" to "60 days" in a sentence:
 ```python
-# BAD - Replaces entire sentence
-'<w:del><w:r><w:delText>The term is 30 days.</w:delText></w:r></w:del><w:ins><w:r><w:t>The term is 60 days.</w:t></w:r></w:ins>'
-
-# GOOD - Only marks what changed, preserves original <w:r> for unchanged text
-'<w:r w:rsidR="00AB12CD"><w:t>The term is </w:t></w:r><w:del><w:r><w:delText>30</w:delText></w:r></w:del><w:ins><w:r><w:t>60</w:t></w:r></w:ins><w:r w:rsidR="00AB12CD"><w:t> days.</w:t></w:r>'
+python bootstrap.py
 ```
 
-### Tracked changes workflow
+幂等设计，已装跳过。Bootstrap 完成后会生成 `runtime/env.json`，包含当前环境的 Node.js 和 Python 路径。
 
-1. **Get markdown representation**: Convert document to markdown with tracked changes preserved:
-   ```bash
-   pandoc --track-changes=all path-to-file.docx -o current.md
-   ```
+检查是否就绪：
 
-2. **Identify and group changes**: Review the document and identify ALL changes needed, organizing them into logical batches:
+```python
+import json
+env = json.load(open("<SKILL_DIR>/runtime/env.json"))
+print(env["node"])  # Node.js 路径
+```
 
-   **Location methods** (for finding changes in XML):
-   - Section/heading numbers (e.g., "Section 3.2", "Article IV")
-   - Paragraph identifiers if numbered
-   - Grep patterns with unique surrounding text
-   - Document structure (e.g., "first paragraph", "signature block")
-   - **DO NOT use markdown line numbers** - they don't map to XML structure
+如果 `runtime/env.json` 不存在 → 先运行 `python bootstrap.py`。
 
-   **Batch organization** (group 3-10 related changes per batch):
-   - By section: "Batch 1: Section 2 amendments", "Batch 2: Section 5 updates"
-   - By type: "Batch 1: Date corrections", "Batch 2: Party name changes"
-   - By complexity: Start with simple text replacements, then tackle complex structural changes
-   - Sequential: "Batch 1: Pages 1-3", "Batch 2: Pages 4-6"
+## 命令速查表（Agent 必读）
 
-3. **Read documentation and unpack**:
-   - **MANDATORY - READ ENTIRE FILE**: Read [`ooxml.md`](ooxml.md) (~600 lines) completely from start to finish. **NEVER set any range limits when reading this file.** Pay special attention to the "Document Library" and "Tracked Change Patterns" sections.
-   - **Unpack the document**: `python ooxml/scripts/unpack.py <file.docx> <dir>`
-   - **Note the suggested RSID**: The unpack script will suggest an RSID to use for your tracked changes. Copy this RSID for use in step 4b.
+> **关键**：先从 `runtime/env.json` 读取 `node` 和 `node_modules` 路径，不要硬编码。
+> 运行 JS 脚本的模式：`NODE_PATH="<node_modules路径>" <node路径> script.js`
 
-4. **Implement changes in batches**: Group changes logically (by section, by type, or by proximity) and implement them together in a single script. This approach:
-   - Makes debugging easier (smaller batch = easier to isolate errors)
-   - Allows incremental progress
-   - Maintains efficiency (batch size of 3-10 changes works well)
+| 任务 | 方法 | 详细文档 |
+|------|------|---------|
+| 获取 node 路径 | 读取 `runtime/env.json` 中的 `node` 和 `node_modules` 字段 | — |
+| 创建新文档 | 写 JS 脚本 → 用上面获取的 node 执行 | [creating_basics.md](references/creating_basics.md), [creating_extras.md](references/creating_extras.md) |
+| 读取/分析 | `python -c "from docx import Document; ..."` | — |
+| 编辑已有文档 | unpack → 编辑 XML → repack | [editing_xml.md](references/editing_xml.md) |
+| 验证文档 | `python scripts/office/validate.py doc.docx` | — |
+| 添加评论 | `python scripts/comment.py unpacked/ 0 "text"` | [editing_xml.md](references/editing_xml.md) |
+| 接受修订 | `python scripts/accept_changes.py in.docx out.docx` | — |
+| .doc → .docx | `python scripts/office/soffice.py --headless --convert-to docx file.doc` | — |
+| 排版配方 | 根据文档类型选参数 | [recipes_common.md](references/recipes_common.md) |
 
-   **Suggested batch groupings:**
-   - By document section (e.g., "Section 3 changes", "Definitions", "Termination clause")
-   - By change type (e.g., "Date changes", "Party name updates", "Legal term replacements")
-   - By proximity (e.g., "Changes on pages 1-3", "Changes in first half of document")
+## 创建新文档：最小可用模板
 
-   For each batch of related changes:
+写 JavaScript 脚本，用 DeskClaw 的 Node 执行。**不要用 python-docx 创建新文档**——docx-js 支持 TOC、脚注、精确列表控制等 python-docx 做不到的功能。
 
-   **a. Map text to XML**: Grep for text in `word/document.xml` to verify how text is split across `<w:r>` elements.
+```javascript
+const fs = require("fs");
+const os = require("os");
+const path = require("path");
+const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell,
+        Header, Footer, AlignmentType, LevelFormat, HeadingLevel,
+        BorderStyle, WidthType, ShadingType, PageNumber, PageBreak,
+        ImageRun } = require("docx");
 
-   **b. Create and run script**: Use `get_node` to find nodes, implement changes, then `doc.save()`. See **"Document Library"** section in ooxml.md for patterns.
+const doc = new Document({
+  styles: {
+    default: { document: { run: { font: "Microsoft YaHei", size: 24 } } },
+    paragraphStyles: [
+      { id: "Heading1", name: "Heading 1", basedOn: "Normal", next: "Normal",
+        quickFormat: true,
+        run: { size: 32, bold: true, font: "Microsoft YaHei" },
+        paragraph: { spacing: { before: 240, after: 240 }, outlineLevel: 0 } },
+      { id: "Heading2", name: "Heading 2", basedOn: "Normal", next: "Normal",
+        quickFormat: true,
+        run: { size: 28, bold: true, font: "Microsoft YaHei" },
+        paragraph: { spacing: { before: 180, after: 180 }, outlineLevel: 1 } },
+    ]
+  },
+  sections: [{
+    properties: {
+      page: {
+        size: { width: 11906, height: 16838 },
+        margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 }
+      }
+    },
+    children: [
+      new Paragraph({ heading: HeadingLevel.HEADING_1,
+        children: [new TextRun("文档标题")] }),
+      new Paragraph({ children: [new TextRun("正文内容...")] }),
+    ]
+  }]
+});
 
-   **Note**: Always grep `word/document.xml` immediately before writing a script to get current line numbers and verify text content. Line numbers change after each script run.
+Packer.toBuffer(doc).then(buffer => {
+  fs.writeFileSync(path.join(os.homedir(), "Desktop", "output.docx"), buffer);
+  console.log("Saved");
+});
+```
 
-5. **Pack the document**: After all batches are complete, convert the unpacked directory back to .docx:
-   ```bash
-   python ooxml/scripts/pack.py unpacked reviewed-document.docx
-   ```
-
-6. **Final verification**: Do a comprehensive check of the complete document:
-   - Convert final document to markdown:
-     ```bash
-     pandoc --track-changes=all reviewed-document.docx -o verification.md
-     ```
-   - Verify ALL changes were applied correctly:
-     ```bash
-     grep "original phrase" verification.md  # Should NOT find it
-     grep "replacement phrase" verification.md  # Should find it
-     ```
-   - Check that no unintended changes were introduced
-
-
-## Converting Documents to Images
-
-To visually analyze Word documents, convert them to images using a two-step process:
-
-1. **Convert DOCX to PDF**:
-   ```bash
-   soffice --headless --convert-to pdf document.docx
-   ```
-
-2. **Convert PDF pages to JPEG images**:
-   ```bash
-   pdftoppm -jpeg -r 150 document.pdf page
-   ```
-   This creates files like `page-1.jpg`, `page-2.jpg`, etc.
-
-Options:
-- `-r 150`: Sets resolution to 150 DPI (adjust for quality/size balance)
-- `-jpeg`: Output JPEG format (use `-png` for PNG if preferred)
-- `-f N`: First page to convert (e.g., `-f 2` starts from page 2)
-- `-l N`: Last page to convert (e.g., `-l 5` stops at page 5)
-- `page`: Prefix for output files
-
-Example for specific range:
+运行方式（路径从 env.json 获取）：
 ```bash
-pdftoppm -jpeg -r 150 -f 2 -l 5 document.pdf page  # Converts only pages 2-5
+# 先读路径
+NODE=$(python -c "import json; print(json.load(open('<SKILL_DIR>/runtime/env.json'))['node'])")
+NODE_MODULES=$(python -c "import json; print(json.load(open('<SKILL_DIR>/runtime/env.json'))['node_modules'])")
+# 再执行
+NODE_PATH="$NODE_MODULES" $NODE script.js
 ```
 
-## Code Style Guidelines
-**IMPORTANT**: When generating code for DOCX operations:
-- Write concise code
-- Avoid verbose variable names and redundant operations
-- Avoid unnecessary print statements
+**完整的 docx-js API 模式（列表、表格、图片、页眉页脚、超链接、脚注、多栏、TOC 等）见：**
+- [creating_basics.md](references/creating_basics.md) — 基础：Setup + 页面尺寸 + 样式 + 列表 + 表格
+- [creating_extras.md](references/creating_extras.md) — 进阶：图片 + 超链接 + 脚注 + 多栏 + TOC + 硬规则
 
-## Dependencies
+## 排版速查
 
-读完本 SKILL.md 后，**立即静默安装缺失依赖，不要询问用户**。
+### 中文文档默认值
 
-### 核心（必装）
+| 属性 | docx-js 值 | 原因 |
+|------|-----------|------|
+| 字体 | `font: "Microsoft YaHei"` | 跨平台最安全 |
+| 正文字号 | `size: 24` (12pt) | 中文需要较大字号 |
+| 标题1 | `size: 32` (16pt), bold | 与正文比 ≥ 1.3:1 |
+| 段间距 | `spacing: { after: 160 }` (8pt) | 段落分隔 |
+| 页面 | A4: `width: 11906, height: 16838` | 中国标准 |
+| 边距 | `margin: { top: 1440, ... }` (1 inch) | 通用 |
 
-```bash
-# 文本提取
-# macOS
-brew install pandoc
-# Linux
-sudo apt-get install -y pandoc
-# Windows
-winget install -e --id JohnMacFarlane.Pandoc
+### 设计决策 6 条原则
 
-# 创建新文档（项目本地安装）
-npm install docx
+1. **留白** 60-70% 覆盖率 2. **对比** 标题与正文 ≥ 1.5:1 3. **亲近** 相关内容间距小 4. **对齐** 网格对齐 5. **重复** 同级标题同样式 6. **层次** 3 秒看出层级
 
-# XML 解析
-pip install defusedxml
-```
+中英混排时，中文和英文/数字之间加半角空格：`中文 English 中文`。
 
-### 可选（按需）
+## 参考文档索引
 
-```bash
-# 文档转图片（需要 LibreOffice + Poppler）
-# macOS
-brew install --cask libreoffice && brew install poppler
-# Linux
-sudo apt-get install -y libreoffice poppler-utils
-# Windows
-winget install -e --id TheDocumentFoundation.LibreOffice
-```
+按需读取，不要一次全读。
+
+| 需求 | 文件 |
+|------|------|
+| **docx-js 创建基础**（样式/列表/表格） | [creating_basics.md](references/creating_basics.md) |
+| **docx-js 创建进阶**（图片/脚注/TOC/硬规则） | [creating_extras.md](references/creating_extras.md) |
+| **编辑已有文档** / tracked changes / comments | [editing_xml.md](references/editing_xml.md) |
+| 排版风格（5 种常用配方） | [recipes_common.md](references/recipes_common.md) |
+| 更多学术/专业配方 | [recipes_extra.md](references/recipes_extra.md) |
+| 留白和间距原则 | [design_space.md](references/design_space.md) |
+| 对比和比例原则 | [design_contrast.md](references/design_contrast.md) |
+| 对齐和一致性原则 | [design_structure.md](references/design_structure.md) |
+| 视觉层次原则 | [design_hierarchy.md](references/design_hierarchy.md) |
+| 西文字体/字号/行距 | [typo_fonts.md](references/typo_fonts.md) |
+| 页面布局/表格/配色 | [typo_layout.md](references/typo_layout.md) |
+| CJK 字体/字号名称 | [cjk_fonts.md](references/cjk_fonts.md) |
+| CJK 标点/行距/GB/T 9704 | [cjk_rules.md](references/cjk_rules.md) |

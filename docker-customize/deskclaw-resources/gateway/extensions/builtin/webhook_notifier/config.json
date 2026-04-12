@@ -1,0 +1,9 @@
+{
+  "enabled": false,
+  "priority": 100,
+  "url": "",
+  "events": ["turn_end"],
+  "template": null,
+  "secret": "",
+  "timeout": 5.0
+}

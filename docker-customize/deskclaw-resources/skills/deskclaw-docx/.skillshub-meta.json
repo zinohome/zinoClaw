@@ -1,9 +1,9 @@
 {
   "slug": "deskclaw-docx",
-  "version": "2.0.0",
-  "registry": "https://skills.nodeskai.com",
-  "installedAt": "2026-04-04T01:28:13.478Z",
-  "inspectName": "Word 文档操作（DeskClaw DOCX）",
-  "inspectDescription": "DeskClaw 自研 Word 全能工具。支持创建（docx-js）、编辑（OOXML）、红线审阅（Tracked Changes）三大工作流。内置 Document Library 高级 API、XML 校验、批量修订策略。",
-  "inspectVersion": "2.0.0"
+  "version": "3.0.0",
+  "registry": "https://skills.deskclaw.me",
+  "installedAt": "2026-04-10T15:08:46.301Z",
+  "inspectName": "官方 Word 文档操作（DeskClaw DOCX）",
+  "inspectDescription": "DeskClaw 自研 Word 全能工具。基于 docx-js 创建、python-docx 读取、OOXML unpack/repack 编辑、LibreOffice 校验与格式转换；支持红线审阅、评论、接受修订与中文排版规范。",
+  "inspectVersion": "3.0.0"
 }

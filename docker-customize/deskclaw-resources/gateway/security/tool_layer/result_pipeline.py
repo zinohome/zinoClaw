@@ -22,14 +22,14 @@ _DEFAULT_SIZE_GUARD_MULTIPLIER = 10
 
 
 def kernel_tool_result_nominal_chars() -> int:
-    """Same value as ``AgentLoop._TOOL_RESULT_MAX_CHARS`` (typical per-result budget in the loop)."""
+    """Return the nominal per-result character budget used by the agent loop."""
     try:
-        from nanobot.agent.loop import AgentLoop
+        from nanobot.config.schema import AgentDefaults
 
-        return int(getattr(AgentLoop, "_TOOL_RESULT_MAX_CHARS", _KERNEL_TOOL_RESULT_NOMINAL_FALLBACK))
+        return int(AgentDefaults().max_tool_result_chars)
     except Exception:
         logger.warning(
-            "[Security] Cannot read AgentLoop._TOOL_RESULT_MAX_CHARS; using nominal fallback %s",
+            "[Security] Cannot read AgentDefaults.max_tool_result_chars; using nominal fallback %s",
             _KERNEL_TOOL_RESULT_NOMINAL_FALLBACK,
         )
         return _KERNEL_TOOL_RESULT_NOMINAL_FALLBACK

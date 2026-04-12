@@ -1,9 +1,9 @@
 {
   "slug": "multimodal-understanding",
-  "version": "1.1.8",
-  "registry": "https://skills.nodeskai.com",
-  "installedAt": "2026-04-08T03:07:14.450Z",
+  "version": "1.3.2",
+  "registry": "https://skills.deskclaw.me",
+  "installedAt": "2026-04-10T15:08:51.639Z",
   "inspectName": "图像识别（Multimodal Understanding）",
-  "inspectDescription": "识别与理解图片内容，支持本地文件和 URL 输入。",
-  "inspectVersion": "1.1.8"
+  "inspectDescription": "识别与理解图片内容，支持本地文件和 URL 输入，kimi-k2.5 / glm-5v-turbo 双模型。",
+  "inspectVersion": "1.3.2"
 }

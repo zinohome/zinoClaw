@@ -7,17 +7,18 @@
 # Mode 2 — local file shortcut:
 #   multimodal-call.sh --file <image_path> '<prompt>' [max_tokens] [model]
 #   Auto-compresses large images, base64-encodes, and sends via temp file.
+#   Default model: kimi-k2.5 (base64 supported).
 #
 # Mode 3 — image URL shortcut:
 #   multimodal-call.sh --url '<image_url>' '<prompt>' [max_tokens] [model]
-#   Sends public URL directly; no download or base64 needed.
+#   Sends public URL directly. Forces glm-5v-turbo (kimi-k2.5 does not support URL).
 
 GATEWAY_BASE="https://llm-gateway-api.nodesk.tech"
 
 CONFIG="$HOME/.deskclaw/nanobot/config.json"
 
 eval $(python3 -c "
-import json,sys,os
+import json,sys
 c=json.load(open(sys.argv[1]))
 p=c.get('providers',{})
 key=''
@@ -60,8 +61,8 @@ send_request() {
 if [ "$1" = "--file" ]; then
     IMAGE_PATH="$2"
     PROMPT="${3:-Describe this image in detail.}"
-    MAX_TOKENS="${4:-1000}"
-    MODEL="${5:-gpt-4o}"
+    MAX_TOKENS="${4:-1500}"
+    MODEL="${5:-kimi-k2.5}"
 
     if [ -z "$IMAGE_PATH" ] || [ ! -f "$IMAGE_PATH" ]; then
         echo "{\"error\": \"File not found: $IMAGE_PATH\"}"
@@ -76,7 +77,6 @@ if [ "$1" = "--file" ]; then
 
     WORK_FILE="$IMAGE_PATH"
 
-    # Auto-compress if > 500KB
     if [ "$FILE_SIZE" -gt 500000 ] 2>/dev/null; then
         RESIZED="$TMPDIR_WORK/resized.jpg"
         if sips --resampleHeightWidthMax 1536 --setProperty format jpeg --setProperty formatOptions 80 "$IMAGE_PATH" --out "$RESIZED" >/dev/null 2>&1; then
@@ -96,7 +96,6 @@ if [ "$1" = "--file" ]; then
     B64_FILE="$TMPDIR_WORK/b64.txt"
     base64 -i "$WORK_FILE" | tr -d '\n' > "$B64_FILE"
 
-    # Write prompt to file so Python reads it cleanly
     PROMPT_FILE="$TMPDIR_WORK/prompt.txt"
     printf '%s' "$PROMPT" > "$PROMPT_FILE"
 
@@ -137,8 +136,8 @@ fi
 if [ "$1" = "--url" ]; then
     IMAGE_URL="$2"
     PROMPT="${3:-Describe this image in detail.}"
-    MAX_TOKENS="${4:-1000}"
-    MODEL="${5:-gpt-4o}"
+    MAX_TOKENS="${4:-1500}"
+    MODEL="glm-5v-turbo"
 
     if [ -z "$IMAGE_URL" ]; then
         echo '{"error": "Usage: multimodal-call.sh --url <image_url> <prompt>"}'
@@ -169,14 +168,83 @@ PYEOF
         exit 1
     fi
 
-    send_request "$BODY_FILE"
-    exit $?
+    RESPONSE=$(send_request "$BODY_FILE")
+
+    if echo "$RESPONSE" | grep -q '"1210"'; then
+        DL_FILE="$TMPDIR_WORK/downloaded_img"
+        curl -sL --max-time 30 -o "$DL_FILE" "$IMAGE_URL"
+
+        if [ ! -f "$DL_FILE" ] || [ ! -s "$DL_FILE" ]; then
+            echo "$RESPONSE"
+            exit 1
+        fi
+
+        FILE_SIZE=$(stat -f%z "$DL_FILE" 2>/dev/null || stat -c%s "$DL_FILE" 2>/dev/null)
+        WORK_FILE="$DL_FILE"
+
+        DETECTED_MIME=$(file --mime-type -b "$DL_FILE" 2>/dev/null)
+        case "$DETECTED_MIME" in
+            image/jpeg) MIME="jpeg" ;;
+            image/png)  MIME="png" ;;
+            image/gif)  MIME="gif" ;;
+            image/webp) MIME="webp" ;;
+            *)          MIME="jpeg" ;;
+        esac
+
+        if [ "$FILE_SIZE" -gt 500000 ] 2>/dev/null; then
+            RESIZED="$TMPDIR_WORK/resized.jpg"
+            if sips --resampleHeightWidthMax 1536 --setProperty format jpeg --setProperty formatOptions 80 "$DL_FILE" --out "$RESIZED" >/dev/null 2>&1; then
+                WORK_FILE="$RESIZED"
+                MIME="jpeg"
+            fi
+        fi
+
+        B64_FILE="$TMPDIR_WORK/b64.txt"
+        base64 -i "$WORK_FILE" | tr -d '\n' > "$B64_FILE"
+
+        PROMPT_FILE="$TMPDIR_WORK/prompt.txt"
+        printf '%s' "$PROMPT" > "$PROMPT_FILE"
+
+        FALLBACK_MODEL="kimi-k2.5"
+        BODY_FILE="$TMPDIR_WORK/fallback_body.json"
+
+        python3 - "$B64_FILE" "$PROMPT_FILE" "$MIME" "$FALLBACK_MODEL" "$MAX_TOKENS" "$BODY_FILE" << 'PYEOF'
+import json, sys
+b64_path, prompt_path, mime, model, max_tokens, out_path = sys.argv[1:7]
+with open(b64_path) as f:
+    b64 = f.read()
+with open(prompt_path) as f:
+    prompt = f.read()
+data_uri = f"data:image/{mime};base64,{b64}"
+body = {
+    "model": model,
+    "messages": [{"role": "user", "content": [
+        {"type": "text", "text": prompt},
+        {"type": "image_url", "image_url": {"url": data_uri}}
+    ]}],
+    "max_tokens": int(max_tokens)
+}
+with open(out_path, "w") as f:
+    json.dump(body, f)
+PYEOF
+
+        if [ ! -f "$BODY_FILE" ]; then
+            echo '{"error": "Fallback failed: could not build base64 request body"}'
+            exit 1
+        fi
+
+        send_request "$BODY_FILE"
+        exit $?
+    fi
+
+    echo "$RESPONSE"
+    exit 0
 fi
 
 # --- Mode 1: raw messages JSON ---
 MESSAGES="$1"
-MAX_TOKENS="${2:-1000}"
-MODEL="${3:-gpt-4o}"
+MAX_TOKENS="${2:-1500}"
+MODEL="${3:-kimi-k2.5}"
 
 if [ -z "$MESSAGES" ]; then
     echo '{"error": "Usage: multimodal-call.sh --file <path> <prompt> | multimodal-call.sh --url <url> <prompt> | multimodal-call.sh <messages_json>"}'

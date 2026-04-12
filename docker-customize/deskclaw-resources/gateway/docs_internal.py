@@ -125,7 +125,7 @@ DOCS["loop_guard"] = """\
 ## 灵敏度预设
 | 预设 | duplicate | consecutive | failed |
 |------|-----------|-------------|--------|
-| conservative | 3 | 5 | 20 |
+| conservative | 2 | 3 | 15 |
 | default | 3 | 5 | 25 |
 | relaxed | 5 | 8 | 40 |
 
@@ -134,6 +134,48 @@ DOCS["loop_guard"] = """\
 
 ## 工具调用上限
 `get_max_tool_iterations` 查看当前 `maxToolIterations`；`set_max_tool_iterations(value)` 修改（需 Bot 控制权限），修改后需 `restart_gateway` 生效。默认 40，建议范围 10~200。
+"""
+
+DOCS["extensions"] = """\
+# 扩展管理
+
+## 目录结构
+每个扩展是 `~/.deskclaw/extensions/` 下的一个独立目录：
+```
+~/.deskclaw/extensions/<name>/
+├── <name>.py       # 扩展代码
+├── config.json     # 配置（必须含 "enabled": true/false）
+└── README.md       # 文档说明
+```
+
+## 优先级
+config.json 中的 `priority` 字段控制多个扩展处理同一 hook 时的执行顺序，**数字越小越先执行**，默认 100。
+
+## 内置扩展（首次启动自动安装，默认未启用）
+| 扩展 | 说明 |
+|------|------|
+| webhook_notifier | 对话完成或工具调用时发送 HTTP POST 通知 |
+| log_archive | 自动归档对话记录到本地 JSONL 或 Markdown 文件 |
+| example_logger | 调试用，将生命周期事件打印到 stderr |
+
+## 工具使用流程
+1. `extension_list` — 查看所有已安装扩展（含未启用的）
+2. `extension_info(name)` — 读取扩展的 README 和当前配置，**配置前必须先读**
+3. `extension_config_set(name, key, value)` — 修改配置项（如 url、dir）
+4. `extension_toggle(name, enabled)` — 启用/禁用（持久化到 config.json）
+5. `extension_reload` — 热重载使变更生效
+
+## 示例：帮用户开启 Webhook
+```
+extension_info("webhook_notifier")          # 先读 README 了解配置项
+extension_config_set("webhook_notifier", "url", '"https://example.com/hook"')
+extension_config_set("webhook_notifier", "events", '["turn_end", "tool_call"]')
+extension_toggle("webhook_notifier", true)
+extension_reload()
+```
+
+## 创建新扩展
+`extension_create(name, description, hooks)` — 脚手架生成目录、.py、config.json、README.md。hooks 可选值见扩展基类 `DeskClawExtension`。
 """
 
 DOCS["channels"] = """\

@@ -9,7 +9,13 @@ from . import _bot_control_allowed, DESKCLAW_HOME, read_config_raw, write_config
 
 _CONFIG_PATH = DESKCLAW_HOME / "loop-guard.json"
 
-_VALID_SENSITIVITIES = ("conservative", "default", "relaxed")
+_VALID_SENSITIVITIES = ("conservative", "default", "relaxed", "custom")
+
+_PRESETS = {
+    "conservative": {"max_duplicate_calls": 2, "max_consecutive_errors": 3, "max_failed_per_turn": 15},
+    "default":      {"max_duplicate_calls": 3, "max_consecutive_errors": 5, "max_failed_per_turn": 25},
+    "relaxed":      {"max_duplicate_calls": 5, "max_consecutive_errors": 8, "max_failed_per_turn": 40},
+}
 
 _DEFAULTS = {
     "enabled": True,
@@ -25,8 +31,10 @@ def _read_config() -> dict:
     cfg = dict(_DEFAULTS)
     try:
         if _CONFIG_PATH.exists():
-            user_cfg = json.loads(_CONFIG_PATH.read_text(encoding="utf-8"))
-            cfg.update(user_cfg)
+            raw = json.loads(_CONFIG_PATH.read_text(encoding="utf-8"))
+            if "max_calls_per_turn" in raw and "max_failed_per_turn" not in raw:
+                raw["max_failed_per_turn"] = raw.pop("max_calls_per_turn")
+            cfg.update(raw)
     except (json.JSONDecodeError, OSError):
         pass
     return cfg
@@ -79,6 +87,7 @@ def register(mcp) -> None:
                          - "conservative" — 保守（更早介入）
                          - "default" — 默认（平衡）
                          - "relaxed" — 宽松（更高容忍度，适合复杂任务）
+                         - "custom" — 自定义（使用配置文件中的阈值）
         """
         if not _bot_control_allowed():
             return json.dumps({"error": "Bot control is disabled by user. Enable it in Settings → Security."})
@@ -89,10 +98,12 @@ def register(mcp) -> None:
             })
         cfg = _read_config()
         cfg["sensitivity"] = sensitivity
+        preset = _PRESETS.get(sensitivity)
+        if preset:
+            cfg.update(preset)
         _write_config(cfg)
         _reload_runtime()
-        result = _read_config()
-        return json.dumps({"ok": True, **result})
+        return json.dumps({"ok": True, **cfg})
 
     @mcp.tool()
     async def get_max_tool_iterations() -> str:

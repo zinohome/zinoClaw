@@ -1,524 +1,368 @@
 ---
-name: pptx
+name: deskclaw-pptx
 slug: deskclaw-pptx
-version: 3.0.2
+version: 4.0.0
 displayName: PPT 演示文稿生成器（DeskClaw PPTX）
-summary: DeskClaw 自研 PPT 全能工具。支持从零创建（HTML 高精度渲染）、模板编辑（OOXML）、内容分析三大工作流。内置视觉校验、图表表格支持、18 种配色方案，跨平台兼容。
-description: "Create, edit, and analyze PowerPoint presentations. Three workflows: create from scratch with HTML rendering (high-precision CSS/Flexbox layout), edit templates via OOXML XML manipulation, or extract text with markitdown. Built-in visual validation, charts, tables, 18 color palettes. Triggers: PPT, PPTX, PowerPoint, presentation, slide, deck, slides, 演示文稿, 幻灯片."
-license: MIT
-tags: office, pptx, presentation, slides, design-system, charts, templates
-metadata:
-  category: productivity
-  author: DeskClaw
-  sources:
-    - https://gitbrent.github.io/PptxGenJS/
-    - https://github.com/nicbarker/html2pptx
-    - https://github.com/microsoft/markitdown
+summary: DeskClaw 自研 PPT 全能工具。支持从零创建（PptxGenJS 高精度渲染）、模板编辑（OOXML unpack/pack）、内容分析三大工作流。内置 18 种配色方案、5 种幻灯片类型、完整设计系统，跨平台兼容。
+description: "Generate, edit, and read PowerPoint presentations. Create from scratch with PptxGenJS (cover, TOC, content, section divider, summary slides), edit existing PPTX via XML unpack/pack workflows, or extract text with markitdown. Includes 18 color palettes, 4 style recipes, 5 slide types, and full design system. Triggers: PPT, PPTX, PowerPoint, presentation, slide, deck, slides, 演示文稿, 幻灯片."
+author: DeskClaw
+tags: office, pptx, presentation, slides, design-system, charts, templates, powerpoint
 ---
 
-# PPTX Creation, Editing & Analysis
+# PPT 演示文稿生成器
 
+## 工作流选择
 
-## Overview
+| 用户需求 | 走哪条路 | 关键命令 |
+|----------|---------|---------|
+| **创建新 PPT** | PptxGenJS 工作流 | 写 JS → `python scripts/compile.py slides/ output.pptx` |
+| **编辑现有 PPT** | OOXML 工作流 | `unpack.py` → 编辑 XML → `pack.py` |
+| **查看 PPT 内容** | markitdown | `python -m markitdown file.pptx` |
 
-A user may ask you to create, edit, or analyze the contents of a .pptx file. A .pptx file is essentially a ZIP archive containing XML files and other resources that you can read or edit. You have different tools and workflows available for different tasks.
+**执行须知 (减少不必要的工具调用):**
+- `python bootstrap.py` 只需执行一次，它会自动检测已安装的依赖并跳过，输出所有可用路径
+- `compile.py` 会自动创建输出目录，不需要提前 mkdir
+- `write_file` 直接写文件即可，不需要先 ls 检查或 mkdir 创建目录
+- 简单任务不需要读 reference 文件，SKILL.md 本身包含足够的示例
 
-## Reading and analyzing content
+## 命令速查表
 
-### Text extraction
-If you just need to read the text contents of a presentation, you should convert the document to markdown:
+| 任务 | 命令 |
+|------|------|
+| **安装依赖** | `python bootstrap.py` |
+| **提取文本** | `python -m markitdown presentation.pptx` |
+| **生成缩略图** | `python scripts/thumbnail.py presentation.pptx` |
+| **解包 PPTX** | `python scripts/office/unpack.py input.pptx unpacked/` |
+| **打包 PPTX** | `python scripts/office/pack.py unpacked/ output.pptx --original input.pptx` |
+| **复制幻灯片** | `python scripts/add_slide.py unpacked/ slide2.xml` |
+| **清理孤立文件** | `python scripts/clean.py unpacked/` |
+| **验证 XML** | `python scripts/office/validate.py unpacked/ --original input.pptx` |
+| **编译 JS→PPTX** | `python scripts/compile.py slides/ output.pptx` |
 
-```bash
-# Convert document to markdown
-python -m markitdown path-to-file.pptx
+| 参数 | 值 |
+|------|---|
+| **幻灯片尺寸** | 10" x 5.625" (LAYOUT_16x9) |
+| **颜色格式** | 6 位 hex，无 # 前缀 (如 `"FF0000"`) |
+| **中文字体** | Microsoft YaHei (微软雅黑) |
+| **英文字体** | Arial (默认)，或 Georgia/Calibri/Cambria |
+| **页码位置** | x: 9.3", y: 5.1" |
+| **theme 键** | `primary`, `secondary`, `accent`, `light`, `bg` |
+
+---
+
+## 参考文档 (按需读取)
+
+根据任务需要选择读取对应文件，不需要全部读。
+
+| 文件 | 何时读 | 内容摘要 |
+|------|--------|---------|
+| [pptxgenjs-basic.md](references/pptxgenjs-basic.md) | **总是** | 文本、列表、形状的 JS API — 写 slide JS 必读 |
+| [pptxgenjs-data.md](references/pptxgenjs-data.md) | 需要表格或图表时 | addTable、addChart API |
+| [pptxgenjs-media.md](references/pptxgenjs-media.md) | 需要图片或图标时 | addImage、react-icons 用法 |
+| [colors.md](references/colors.md) | 用户要求设计感/配色时 | 18 套色彩方案查找表 |
+| [styles.md](references/styles.md) | 用户要求特定风格时 | 4 种风格 (Sharp/Soft/Rounded/Pill) 的间距和圆角参数 |
+| [fonts-chinese.md](references/fonts-chinese.md) | 生成中文内容时 | 中文字体、字号、行高规则 |
+| [slide-cover.md](references/slide-cover.md) | 需要精美封面时 | 封面页布局方案 |
+| [slide-content.md](references/slide-content.md) | 需要丰富布局时 | 内容页 6 种子类型 |
+| [slide-toc-divider.md](references/slide-toc-divider.md) | 超过 8 页时 | 目录页 + 分隔页 |
+| [slide-summary.md](references/slide-summary.md) | 需要精美结尾时 | 总结页布局 |
+| [color-scales.md](references/color-scales.md) | 极少 | Platinum 主题完整色阶 |
+| [pitfalls.md](references/pitfalls.md) | QA 阶段 | 常见错误 + PptxGenJS 陷阱 |
+| [editing.md](editing.md) | 编辑现有 PPT 时 | OOXML 模板编辑工作流 |
+
+---
+
+## 两个核心工作流
+
+### 工作流 A: 从零创建 (PptxGenJS)
+
+用于没有现成模板的场景。用 JavaScript 生成原生 PPTX 文件。
+
+### 工作流 B: 模板编辑 (OOXML)
+
+用于基于现有演示文稿的场景。解包 PPTX 为 XML，直接编辑后重新打包。
+
+---
+
+## 工作流 A: 从零创建
+
+### 第 1 步: 理解需求
+
+了解主题、受众、用途、风格基调和内容深度。
+
+### 第 2 步: 选择色彩方案与字体
+
+从 [色彩方案](references/design-system.md#color-palette-reference) 中选择匹配主题的方案。
+从 [字体配对](references/design-system.md#font-reference) 中选择字体组合。
+
+色彩方案应该为这个特定主题而选择。如果把你的颜色换到一个完全不同的演示中还能"成立"，说明选择不够具体。
+
+### 第 3 步: 选择设计风格
+
+从 [风格配方](references/design-system.md#style-recipes) 中选择视觉风格:
+- **Sharp & Compact**: 数据密集、财务报告
+- **Soft & Balanced**: 企业商务、通用场景
+- **Rounded & Spacious**: 产品介绍、营销
+- **Pill & Airy**: 品牌发布、高端展示
+
+### 第 4 步: 规划幻灯片大纲
+
+将每张幻灯片归类为 [5 种页面类型](references/slide-types.md) 之一:
+
+| 类型 | 用途 | 数量 |
+|------|------|------|
+| **封面 (Cover)** | 开场，定调 | 1 张 |
+| **目录 (TOC)** | 导航，设预期 | 0-1 张 |
+| **分隔页 (Section Divider)** | 章节过渡 | 按章节数 |
+| **内容页 (Content)** | 主体内容 (6 种子类型) | 占大部分 |
+| **总结页 (Summary)** | 收尾，行动号召 | 1 张 |
+
+内容页 6 种子类型: 文字型、图文混排、数据可视化、对比型、时间线/流程、图片展示。
+
+确保视觉多样性 — 不要在多张幻灯片上重复同一布局。
+
+### 第 5 步: 生成幻灯片 JS 文件
+
+每张幻灯片一个 JS 文件 (`slides/slide-01.js`, `slides/slide-02.js`, ...)。
+
+每个文件必须导出同步 `createSlide(pres, theme)` 函数。不需要 require pptxgenjs — `pres` 对象由 compile.js 传入:
+
+```javascript
+// slides/slide-01.js
+function createSlide(pres, theme) {
+  const slide = pres.addSlide();
+  slide.background = { color: theme.bg };
+
+  slide.addText("标题", {
+    x: 0.5, y: 2, w: 9, h: 1.2,
+    fontSize: 48, fontFace: "Microsoft YaHei",
+    color: theme.primary, bold: true, align: "center"
+  });
+
+  return slide;
+}
+
+module.exports = { createSlide };
 ```
 
-### Raw XML access
-You need raw XML access for: comments, speaker notes, slide layouts, animations, design elements, and complex formatting. For any of these features, you'll need to unpack a presentation and read its raw XML contents.
+### 第 6 步: 编写 compile.js 并编译
 
-#### Unpacking a file
-`python ooxml/scripts/unpack.py <office_file> <output_dir>`
+在 `slides/` 目录下创建 `compile.js`，汇编所有幻灯片:
 
-**Note**: The unpack.py script is located at `skills/pptx/ooxml/scripts/unpack.py` relative to the project root. If the script doesn't exist at this path, use `find . -name "unpack.py"` to locate it.
+```javascript
+// slides/compile.js
+const pptxgen = require('pptxgenjs');
+const pres = new pptxgen();
+pres.layout = 'LAYOUT_16x9';
 
-#### Key file structures
-* `ppt/presentation.xml` - Main presentation metadata and slide references
-* `ppt/slides/slide{N}.xml` - Individual slide contents (slide1.xml, slide2.xml, etc.)
-* `ppt/notesSlides/notesSlide{N}.xml` - Speaker notes for each slide
-* `ppt/comments/modernComment_*.xml` - Comments for specific slides
-* `ppt/slideLayouts/` - Layout templates for slides
-* `ppt/slideMasters/` - Master slide templates
-* `ppt/theme/` - Theme and styling information
-* `ppt/media/` - Images and other media files
+const theme = {
+  primary: "2b2d42",    // 深色，标题和背景
+  secondary: "8d99ae",  // 次深色，正文和装饰
+  accent: "ef233c",     // 强调色
+  light: "edf2f4",      // 浅色调
+  bg: "ffffff"           // 背景色
+};
 
-#### Typography and color extraction
-**When given an example design to emulate**: Always analyze the presentation's typography and colors first using the methods below:
-1. **Read theme file**: Check `ppt/theme/theme1.xml` for colors (`<a:clrScheme>`) and fonts (`<a:fontScheme>`)
-2. **Sample slide content**: Examine `ppt/slides/slide1.xml` for actual font usage (`<a:rPr>`) and colors
-3. **Search for patterns**: Use grep to find color (`<a:solidFill>`, `<a:srgbClr>`) and font references across all XML files
+// 按顺序加载所有幻灯片 (修改数量以匹配实际幻灯片数)
+for (let i = 1; i <= 3; i++) {
+  const num = String(i).padStart(2, '0');
+  require(`./slide-${num}.js`).createSlide(pres, theme);
+}
 
-## Creating a new PowerPoint presentation **without a template**
-
-When creating a new PowerPoint presentation from scratch, use the **html2pptx** workflow to convert HTML slides to PowerPoint with accurate positioning.
-
-### Design Principles
-
-**CRITICAL**: Before creating any presentation, analyze the content and choose appropriate design elements:
-1. **Consider the subject matter**: What is this presentation about? What tone, industry, or mood does it suggest?
-2. **Check for branding**: If the user mentions a company/organization, consider their brand colors and identity
-3. **Match palette to content**: Select colors that reflect the subject
-4. **State your approach**: Explain your design choices before writing code
-
-**Requirements**:
-- ✅ State your content-informed design approach BEFORE writing code
-- ✅ Use web-safe fonts only: Arial, Helvetica, Times New Roman, Georgia, Courier New, Verdana, Tahoma, Trebuchet MS, Impact
-- ✅ Create clear visual hierarchy through size, weight, and color
-- ✅ Ensure readability: strong contrast, appropriately sized text, clean alignment
-- ✅ Be consistent: repeat patterns, spacing, and visual language across slides
-
-#### Color Palette Selection
-
-**Choosing colors creatively**:
-- **Think beyond defaults**: What colors genuinely match this specific topic? Avoid autopilot choices.
-- **Consider multiple angles**: Topic, industry, mood, energy level, target audience, brand identity (if mentioned)
-- **Be adventurous**: Try unexpected combinations - a healthcare presentation doesn't have to be green, finance doesn't have to be navy
-- **Build your palette**: Pick 3-5 colors that work together (dominant colors + supporting tones + accent)
-- **Ensure contrast**: Text must be clearly readable on backgrounds
-
-**Example color palettes** (use these to spark creativity - choose one, adapt it, or create your own):
-
-1. **Classic Blue**: Deep navy (#1C2833), slate gray (#2E4053), silver (#AAB7B8), off-white (#F4F6F6)
-2. **Teal & Coral**: Teal (#5EA8A7), deep teal (#277884), coral (#FE4447), white (#FFFFFF)
-3. **Bold Red**: Red (#C0392B), bright red (#E74C3C), orange (#F39C12), yellow (#F1C40F), green (#2ECC71)
-4. **Warm Blush**: Mauve (#A49393), blush (#EED6D3), rose (#E8B4B8), cream (#FAF7F2)
-5. **Burgundy Luxury**: Burgundy (#5D1D2E), crimson (#951233), rust (#C15937), gold (#997929)
-6. **Deep Purple & Emerald**: Purple (#B165FB), dark blue (#181B24), emerald (#40695B), white (#FFFFFF)
-7. **Cream & Forest Green**: Cream (#FFE1C7), forest green (#40695B), white (#FCFCFC)
-8. **Pink & Purple**: Pink (#F8275B), coral (#FF574A), rose (#FF737D), purple (#3D2F68)
-9. **Lime & Plum**: Lime (#C5DE82), plum (#7C3A5F), coral (#FD8C6E), blue-gray (#98ACB5)
-10. **Black & Gold**: Gold (#BF9A4A), black (#000000), cream (#F4F6F6)
-11. **Sage & Terracotta**: Sage (#87A96B), terracotta (#E07A5F), cream (#F4F1DE), charcoal (#2C2C2C)
-12. **Charcoal & Red**: Charcoal (#292929), red (#E33737), light gray (#CCCBCB)
-13. **Vibrant Orange**: Orange (#F96D00), light gray (#F2F2F2), charcoal (#222831)
-14. **Forest Green**: Black (#191A19), green (#4E9F3D), dark green (#1E5128), white (#FFFFFF)
-15. **Retro Rainbow**: Purple (#722880), pink (#D72D51), orange (#EB5C18), amber (#F08800), gold (#DEB600)
-16. **Vintage Earthy**: Mustard (#E3B448), sage (#CBD18F), forest green (#3A6B35), cream (#F4F1DE)
-17. **Coastal Rose**: Old rose (#AD7670), beaver (#B49886), eggshell (#F3ECDC), ash gray (#BFD5BE)
-18. **Orange & Turquoise**: Light orange (#FC993E), grayish turquoise (#667C6F), white (#FCFCFC)
-
-#### Visual Details Options
-
-**Geometric Patterns**:
-- Diagonal section dividers instead of horizontal
-- Asymmetric column widths (30/70, 40/60, 25/75)
-- Rotated text headers at 90° or 270°
-- Circular/hexagonal frames for images
-- Triangular accent shapes in corners
-- Overlapping shapes for depth
-
-**Border & Frame Treatments**:
-- Thick single-color borders (10-20pt) on one side only
-- Double-line borders with contrasting colors
-- Corner brackets instead of full frames
-- L-shaped borders (top+left or bottom+right)
-- Underline accents beneath headers (3-5pt thick)
-
-**Typography Treatments**:
-- Extreme size contrast (72pt headlines vs 11pt body)
-- All-caps headers with wide letter spacing
-- Numbered sections in oversized display type
-- Monospace (Courier New) for data/stats/technical content
-- Condensed fonts (Arial Narrow) for dense information
-- Outlined text for emphasis
-
-**Chart & Data Styling**:
-- Monochrome charts with single accent color for key data
-- Horizontal bar charts instead of vertical
-- Dot plots instead of bar charts
-- Minimal gridlines or none at all
-- Data labels directly on elements (no legends)
-- Oversized numbers for key metrics
-
-**Layout Innovations**:
-- Full-bleed images with text overlays
-- Sidebar column (20-30% width) for navigation/context
-- Modular grid systems (3×3, 4×4 blocks)
-- Z-pattern or F-pattern content flow
-- Floating text boxes over colored shapes
-- Magazine-style multi-column layouts
-
-**Background Treatments**:
-- Solid color blocks occupying 40-60% of slide
-- Gradient fills (vertical or diagonal only)
-- Split backgrounds (two colors, diagonal or vertical)
-- Edge-to-edge color bands
-- Negative space as a design element
-
-### Layout Tips
-**When creating slides with charts or tables:**
-- **Two-column layout (PREFERRED)**: Use a header spanning the full width, then two columns below - text/bullets in one column and the featured content in the other. This provides better balance and makes charts/tables more readable. Use flexbox with unequal column widths (e.g., 40%/60% split) to optimize space for each content type.
-- **Full-slide layout**: Let the featured content (chart/table) take up the entire slide for maximum impact and readability
-- **NEVER vertically stack**: Do not place charts/tables below text in a single column - this causes poor readability and layout issues
-
-### Workflow
-1. **MANDATORY - READ ENTIRE FILE**: Read [`html2pptx.md`](html2pptx.md) completely from start to finish. **NEVER set any range limits when reading this file.** Read the full file content for detailed syntax, critical formatting rules, and best practices before proceeding with presentation creation.
-2. Create an HTML file for each slide with proper dimensions (e.g., 720pt × 405pt for 16:9)
-   - Use `<p>`, `<h1>`-`<h6>`, `<ul>`, `<ol>` for all text content
-   - Use `class="placeholder"` for areas where charts/tables will be added (render with gray background for visibility)
-   - **CRITICAL**: Rasterize gradients and icons as PNG images FIRST using Sharp, then reference in HTML
-   - **LAYOUT**: For slides with charts/tables/images, use either full-slide layout or two-column layout for better readability
-3. Create and run a JavaScript file using the [`html2pptx.js`](scripts/html2pptx.js) library to convert HTML slides to PowerPoint and save the presentation
-   - Use the `html2pptx()` function to process each HTML file
-   - Add charts and tables to placeholder areas using PptxGenJS API
-   - Save the presentation using `pptx.writeFile()`
-4. **Visual validation**: Generate thumbnails and inspect for layout issues
-   - Create thumbnail grid: `python scripts/thumbnail.py output.pptx workspace/thumbnails --cols 4`
-   - Read and carefully examine the thumbnail image for:
-     - **Text cutoff**: Text being cut off by header bars, shapes, or slide edges
-     - **Text overlap**: Text overlapping with other text or shapes
-     - **Positioning issues**: Content too close to slide boundaries or other elements
-     - **Contrast issues**: Insufficient contrast between text and backgrounds
-   - If issues found, adjust HTML margins/spacing/colors and regenerate the presentation
-   - Repeat until all slides are visually correct
-
-## Editing an existing PowerPoint presentation
-
-When edit slides in an existing PowerPoint presentation, you need to work with the raw Office Open XML (OOXML) format. This involves unpacking the .pptx file, editing the XML content, and repacking it.
-
-### Workflow
-1. **MANDATORY - READ ENTIRE FILE**: Read [`ooxml.md`](ooxml.md) (~500 lines) completely from start to finish.  **NEVER set any range limits when reading this file.**  Read the full file content for detailed guidance on OOXML structure and editing workflows before any presentation editing.
-2. Unpack the presentation: `python ooxml/scripts/unpack.py <office_file> <output_dir>`
-3. Edit the XML files (primarily `ppt/slides/slide{N}.xml` and related files)
-4. **CRITICAL**: Validate immediately after each edit and fix any validation errors before proceeding: `python ooxml/scripts/validate.py <dir> --original <file>`
-5. Pack the final presentation: `python ooxml/scripts/pack.py <input_directory> <office_file>`
-
-## Creating a new PowerPoint presentation **using a template**
-
-When you need to create a presentation that follows an existing template's design, you'll need to duplicate and re-arrange template slides before then replacing placeholder context.
-
-### Workflow
-1. **Extract template text AND create visual thumbnail grid**:
-   * Extract text: `python -m markitdown template.pptx > template-content.md`
-   * Read `template-content.md`: Read the entire file to understand the contents of the template presentation. **NEVER set any range limits when reading this file.**
-   * Create thumbnail grids: `python scripts/thumbnail.py template.pptx`
-   * See [Creating Thumbnail Grids](#creating-thumbnail-grids) section for more details
-
-2. **Analyze template and save inventory to a file**:
-   * **Visual Analysis**: Review thumbnail grid(s) to understand slide layouts, design patterns, and visual structure
-   * Create and save a template inventory file at `template-inventory.md` containing:
-     ```markdown
-     # Template Inventory Analysis
-     **Total Slides: [count]**
-     **IMPORTANT: Slides are 0-indexed (first slide = 0, last slide = count-1)**
-
-     ## [Category Name]
-     - Slide 0: [Layout code if available] - Description/purpose
-     - Slide 1: [Layout code] - Description/purpose
-     - Slide 2: [Layout code] - Description/purpose
-     [... EVERY slide must be listed individually with its index ...]
-     ```
-   * **Using the thumbnail grid**: Reference the visual thumbnails to identify:
-     - Layout patterns (title slides, content layouts, section dividers)
-     - Image placeholder locations and counts
-     - Design consistency across slide groups
-     - Visual hierarchy and structure
-   * This inventory file is REQUIRED for selecting appropriate templates in the next step
-
-3. **Create presentation outline based on template inventory**:
-   * Review available templates from step 2.
-   * Choose an intro or title template for the first slide. This should be one of the first templates.
-   * Choose safe, text-based layouts for the other slides.
-   * **CRITICAL: Match layout structure to actual content**:
-     - Single-column layouts: Use for unified narrative or single topic
-     - Two-column layouts: Use ONLY when you have exactly 2 distinct items/concepts
-     - Three-column layouts: Use ONLY when you have exactly 3 distinct items/concepts
-     - Image + text layouts: Use ONLY when you have actual images to insert
-     - Quote layouts: Use ONLY for actual quotes from people (with attribution), never for emphasis
-     - Never use layouts with more placeholders than you have content
-     - If you have 2 items, don't force them into a 3-column layout
-     - If you have 4+ items, consider breaking into multiple slides or using a list format
-   * Count your actual content pieces BEFORE selecting the layout
-   * Verify each placeholder in the chosen layout will be filled with meaningful content
-   * Select one option representing the **best** layout for each content section.
-   * Save `outline.md` with content AND template mapping that leverages available designs
-   * Example template mapping:
-      ```
-      # Template slides to use (0-based indexing)
-      # WARNING: Verify indices are within range! Template with 73 slides has indices 0-72
-      # Mapping: slide numbers from outline -> template slide indices
-      template_mapping = [
-          0,   # Use slide 0 (Title/Cover)
-          34,  # Use slide 34 (B1: Title and body)
-          34,  # Use slide 34 again (duplicate for second B1)
-          50,  # Use slide 50 (E1: Quote)
-          54,  # Use slide 54 (F2: Closing + Text)
-      ]
-      ```
-
-4. **Duplicate, reorder, and delete slides using `rearrange.py`**:
-   * Use the `scripts/rearrange.py` script to create a new presentation with slides in the desired order:
-     ```bash
-     python scripts/rearrange.py template.pptx working.pptx 0,34,34,50,52
-     ```
-   * The script handles duplicating repeated slides, deleting unused slides, and reordering automatically
-   * Slide indices are 0-based (first slide is 0, second is 1, etc.)
-   * The same slide index can appear multiple times to duplicate that slide
-
-5. **Extract ALL text using the `inventory.py` script**:
-   * **Run inventory extraction**:
-     ```bash
-     python scripts/inventory.py working.pptx text-inventory.json
-     ```
-   * **Read text-inventory.json**: Read the entire text-inventory.json file to understand all shapes and their properties. **NEVER set any range limits when reading this file.**
-
-   * The inventory JSON structure:
-      ```json
-        {
-          "slide-0": {
-            "shape-0": {
-              "placeholder_type": "TITLE",  // or null for non-placeholders
-              "left": 1.5,                  // position in inches
-              "top": 2.0,
-              "width": 7.5,
-              "height": 1.2,
-              "paragraphs": [
-                {
-                  "text": "Paragraph text",
-                  // Optional properties (only included when non-default):
-                  "bullet": true,           // explicit bullet detected
-                  "level": 0,               // only included when bullet is true
-                  "alignment": "CENTER",    // CENTER, RIGHT (not LEFT)
-                  "space_before": 10.0,     // space before paragraph in points
-                  "space_after": 6.0,       // space after paragraph in points
-                  "line_spacing": 22.4,     // line spacing in points
-                  "font_name": "Arial",     // from first run
-                  "font_size": 14.0,        // in points
-                  "bold": true,
-                  "italic": false,
-                  "underline": false,
-                  "color": "FF0000"         // RGB color
-                }
-              ]
-            }
-          }
-        }
-      ```
-
-   * Key features:
-     - **Slides**: Named as "slide-0", "slide-1", etc.
-     - **Shapes**: Ordered by visual position (top-to-bottom, left-to-right) as "shape-0", "shape-1", etc.
-     - **Placeholder types**: TITLE, CENTER_TITLE, SUBTITLE, BODY, OBJECT, or null
-     - **Default font size**: `default_font_size` in points extracted from layout placeholders (when available)
-     - **Slide numbers are filtered**: Shapes with SLIDE_NUMBER placeholder type are automatically excluded from inventory
-     - **Bullets**: When `bullet: true`, `level` is always included (even if 0)
-     - **Spacing**: `space_before`, `space_after`, and `line_spacing` in points (only included when set)
-     - **Colors**: `color` for RGB (e.g., "FF0000"), `theme_color` for theme colors (e.g., "DARK_1")
-     - **Properties**: Only non-default values are included in the output
-
-6. **Generate replacement text and save the data to a JSON file**
-   Based on the text inventory from the previous step:
-   - **CRITICAL**: First verify which shapes exist in the inventory - only reference shapes that are actually present
-   - **VALIDATION**: The replace.py script will validate that all shapes in your replacement JSON exist in the inventory
-     - If you reference a non-existent shape, you'll get an error showing available shapes
-     - If you reference a non-existent slide, you'll get an error indicating the slide doesn't exist
-     - All validation errors are shown at once before the script exits
-   - **IMPORTANT**: The replace.py script uses inventory.py internally to identify ALL text shapes
-   - **AUTOMATIC CLEARING**: ALL text shapes from the inventory will be cleared unless you provide "paragraphs" for them
-   - Add a "paragraphs" field to shapes that need content (not "replacement_paragraphs")
-   - Shapes without "paragraphs" in the replacement JSON will have their text cleared automatically
-   - Paragraphs with bullets will be automatically left aligned. Don't set the `alignment` property on when `"bullet": true`
-   - Generate appropriate replacement content for placeholder text
-   - Use shape size to determine appropriate content length
-   - **CRITICAL**: Include paragraph properties from the original inventory - don't just provide text
-   - **IMPORTANT**: When bullet: true, do NOT include bullet symbols (•, -, *) in text - they're added automatically
-   - **ESSENTIAL FORMATTING RULES**:
-     - Headers/titles should typically have `"bold": true`
-     - List items should have `"bullet": true, "level": 0` (level is required when bullet is true)
-     - Preserve any alignment properties (e.g., `"alignment": "CENTER"` for centered text)
-     - Include font properties when different from default (e.g., `"font_size": 14.0`, `"font_name": "Lora"`)
-     - Colors: Use `"color": "FF0000"` for RGB or `"theme_color": "DARK_1"` for theme colors
-     - The replacement script expects **properly formatted paragraphs**, not just text strings
-     - **Overlapping shapes**: Prefer shapes with larger default_font_size or more appropriate placeholder_type
-   - Save the updated inventory with replacements to `replacement-text.json`
-   - **WARNING**: Different template layouts have different shape counts - always check the actual inventory before creating replacements
-
-   Example paragraphs field showing proper formatting:
-   ```json
-   "paragraphs": [
-     {
-       "text": "New presentation title text",
-       "alignment": "CENTER",
-       "bold": true
-     },
-     {
-       "text": "Section Header",
-       "bold": true
-     },
-     {
-       "text": "First bullet point without bullet symbol",
-       "bullet": true,
-       "level": 0
-     },
-     {
-       "text": "Red colored text",
-       "color": "FF0000"
-     },
-     {
-       "text": "Theme colored text",
-       "theme_color": "DARK_1"
-     },
-     {
-       "text": "Regular paragraph text without special formatting"
-     }
-   ]
-   ```
-
-   **Shapes not listed in the replacement JSON are automatically cleared**:
-   ```json
-   {
-     "slide-0": {
-       "shape-0": {
-         "paragraphs": [...] // This shape gets new text
-       }
-       // shape-1 and shape-2 from inventory will be cleared automatically
-     }
-   }
-   ```
-
-   **Common formatting patterns for presentations**:
-   - Title slides: Bold text, sometimes centered
-   - Section headers within slides: Bold text
-   - Bullet lists: Each item needs `"bullet": true, "level": 0`
-   - Body text: Usually no special properties needed
-   - Quotes: May have special alignment or font properties
-
-7. **Apply replacements using the `replace.py` script**
-   ```bash
-   python scripts/replace.py working.pptx replacement-text.json output.pptx
-   ```
-
-   The script will:
-   - First extract the inventory of ALL text shapes using functions from inventory.py
-   - Validate that all shapes in the replacement JSON exist in the inventory
-   - Clear text from ALL shapes identified in the inventory
-   - Apply new text only to shapes with "paragraphs" defined in the replacement JSON
-   - Preserve formatting by applying paragraph properties from the JSON
-   - Handle bullets, alignment, font properties, and colors automatically
-   - Save the updated presentation
-
-   Example validation errors:
-   ```
-   ERROR: Invalid shapes in replacement JSON:
-     - Shape 'shape-99' not found on 'slide-0'. Available shapes: shape-0, shape-1, shape-4
-     - Slide 'slide-999' not found in inventory
-   ```
-
-   ```
-   ERROR: Replacement text made overflow worse in these shapes:
-     - slide-0/shape-2: overflow worsened by 1.25" (was 0.00", now 1.25")
-   ```
-
-## Creating Thumbnail Grids
-
-To create visual thumbnail grids of PowerPoint slides for quick analysis and reference:
-
-```bash
-python scripts/thumbnail.py template.pptx [output_prefix]
+// 输出路径由 compile.py 通过环境变量传入
+const output = process.env.PPTX_OUTPUT || './output.pptx';
+pres.writeFile({ fileName: output });
 ```
 
-**Features**:
-- Creates: `thumbnails.jpg` (or `thumbnails-1.jpg`, `thumbnails-2.jpg`, etc. for large decks)
-- Default: 5 columns, max 30 slides per grid (5×6)
-- Custom prefix: `python scripts/thumbnail.py template.pptx my-grid`
-  - Note: The output prefix should include the path if you want output in a specific directory (e.g., `workspace/my-grid`)
-- Adjust columns: `--cols 4` (range: 3-6, affects slides per grid)
-- Grid limits: 3 cols = 12 slides/grid, 4 cols = 20, 5 cols = 30, 6 cols = 42
-- Slides are zero-indexed (Slide 0, Slide 1, etc.)
-
-**Use cases**:
-- Template analysis: Quickly understand slide layouts and design patterns
-- Content review: Visual overview of entire presentation
-- Navigation reference: Find specific slides by their visual appearance
-- Quality check: Verify all slides are properly formatted
-
-**Examples**:
+编译命令 (compile.py 自动处理 node 路径和模块查找):
 ```bash
-# Basic usage
-python scripts/thumbnail.py presentation.pptx
-
-# Combine options: custom name, columns
-python scripts/thumbnail.py template.pptx analysis --cols 4
+python scripts/compile.py slides/ ~/Desktop/testout/deskclaw-pptx/output.pptx
 ```
 
-## Converting Slides to Images
+### 第 7 步: QA 质量检查
 
-To visually analyze PowerPoint slides, convert them to images using a two-step process:
+详见 [QA 流程](references/pitfalls.md#qa-process)。
 
-1. **Convert PPTX to PDF**:
-   ```bash
-   soffice --headless --convert-to pdf template.pptx
-   ```
-
-2. **Convert PDF pages to JPEG images**:
-   ```bash
-   pdftoppm -jpeg -r 150 template.pdf slide
-   ```
-   This creates files like `slide-1.jpg`, `slide-2.jpg`, etc.
-
-Options:
-- `-r 150`: Sets resolution to 150 DPI (adjust for quality/size balance)
-- `-jpeg`: Output JPEG format (use `-png` for PNG if preferred)
-- `-f N`: First page to convert (e.g., `-f 2` starts from page 2)
-- `-l N`: Last page to convert (e.g., `-l 5` stops at page 5)
-- `slide`: Prefix for output files
-
-Example for specific range:
-```bash
-pdftoppm -jpeg -r 150 -f 2 -l 5 template.pdf slide  # Converts only pages 2-5
+输出结构:
+```
+slides/
+├── slide-01.js ... slide-NN.js
+├── imgs/
+└── compile.js
+→ python scripts/compile.py slides/ <目标路径>.pptx
 ```
 
-## Code Style Guidelines
-**IMPORTANT**: When generating code for PPTX operations:
-- Write concise code
-- Avoid verbose variable names and redundant operations
-- Avoid unnecessary print statements
+---
 
-## Dependencies
+## Theme 对象协议 (必须遵守)
 
-读完本 SKILL.md 后，**立即静默安装缺失依赖，不要询问用户**。
+所有幻灯片通过 compile.js 接收同一个 theme 对象，包含且仅包含以下 5 个键:
 
-### 核心依赖（必装）
+| 键 | 用途 | 示例 |
+|----|------|------|
+| `theme.primary` | 最深色，用于标题和背景 | `"22223b"` |
+| `theme.secondary` | 次深色，正文和装饰 | `"4a4e69"` |
+| `theme.accent` | 中间色调，强调 | `"9a8c98"` |
+| `theme.light` | 浅色调，轻装饰 | `"c9ada7"` |
+| `theme.bg` | 背景色 | `"f2e9e4"` |
 
-```bash
-# Node.js 包（项目本地安装）
-npm install pptxgenjs playwright
+不要使用其他键名 (如 `background`, `text`, `muted`)，因为编译脚本只传递这 5 个键。
 
-# Playwright 浏览器（html2pptx 渲染需要）
-npx playwright install chromium
+---
 
-# Python 包
-pip install "markitdown[pptx]" defusedxml
+## 页码徽章 (非封面页必须添加)
+
+除封面外的所有幻灯片都必须在右下角添加页码。
+
+位置: x: 9.3", y: 5.1"。只显示当前页号 (如 `3` 或 `03`)，不显示 "3/12"。
+
+```javascript
+// 圆形徽章
+slide.addShape(pres.shapes.OVAL, {
+  x: 9.3, y: 5.1, w: 0.4, h: 0.4,
+  fill: { color: theme.accent }
+});
+slide.addText("3", {
+  x: 9.3, y: 5.1, w: 0.4, h: 0.4,
+  fontSize: 12, fontFace: "Arial",
+  color: "FFFFFF", bold: true,
+  align: "center", valign: "middle"
+});
 ```
 
-### 可选依赖（按需）
+---
+
+## 工作流 B: 模板编辑
+
+详见 [editing.md](editing.md) 的完整工作流。
+
+简要步骤:
+
+1. **分析**: `python scripts/thumbnail.py template.pptx` + `python -m markitdown template.pptx`
+2. **解包**: `python scripts/office/unpack.py template.pptx unpacked/`
+3. **操作**: 在 `ppt/presentation.xml` 的 `<p:sldIdLst>` 中删除/复制/重排幻灯片
+4. **编辑**: 修改各 `slide{N}.xml` 中的文本和元素
+5. **清理**: `python scripts/clean.py unpacked/`
+6. **打包**: `python scripts/office/pack.py unpacked/ output.pptx --original template.pptx`
+7. **验证**: `python scripts/office/validate.py unpacked/ --original template.pptx`
+
+---
+
+## 设计原则
+
+### 不要做无聊的幻灯片
+
+白色背景加项目符号是最低标准。每张幻灯片都应该有视觉元素 — 图片、图表、图标或形状。
+
+### 排版规范
+
+| 元素 | 字号 |
+|------|------|
+| 幻灯片标题 | 36-44pt 加粗 |
+| 章节标题 | 20-24pt 加粗 |
+| 正文 | 14-16pt (中文 16-18pt) |
+| 注释/来源 | 10-12pt |
+| 数据突出显示 | 60-72pt |
+
+正文左对齐 (不要居中)。标题可以居中。中文正文不加粗 — 粗体仅用于标题。
+
+### 布局建议
+
+- 双栏布局 (文字左，图片右)
+- 图标 + 文字行 (图标在彩色圆圈中)
+- 2x2 或 2x3 网格
+- 半出血图片 + 内容叠加
+- 大数字标注 (60-72pt 数字 + 小标签)
+
+### 常见错误 (必须避免)
+
+- 不要在多张幻灯片上重复同样的布局
+- 不要居中正文 — 正文左对齐
+- 不要使用 `#` 前缀的 hex 颜色 (会导致文件损坏)
+- 不要把透明度写进 8 位 hex 颜色字符串 — 用 `opacity` 属性
+- 不要在 createSlide() 中使用 async/await — 必须同步
+- 不要复用选项对象 — PptxGenJS 会原地修改，用工厂函数代替
+- 不要在标题下加装饰线 — 这是 AI 生成幻灯片的明显标志
+- 不要使用低对比度的文字或图标
+
+---
+
+## QA 检查 (必须执行)
+
+假设第一次渲染有问题。你的任务是找到它们。
+
+### 内容检查
 
 ```bash
-# 图标光栅化（仅当需要 react-icons 时）
-npm install react-icons react react-dom sharp
-
-# 缩略图/视觉验证（仅当需要 thumbnail.py 时）
-# macOS
-brew install --cask libreoffice && brew install poppler
-# Linux
-sudo apt-get install -y libreoffice poppler-utils
-# Windows
-winget install -e --id TheDocumentFoundation.LibreOffice
-winget install -e --id freedesktop.org.poppler
+python -m markitdown output.pptx
 ```
 
-### 跨平台注意事项
+检查内容缺失、错别字、顺序错误。
 
-| 平台 | Python 命令 | 备注 |
-|------|-----------|------|
-| macOS/Linux | `python3` | 系统自带或通过 brew 安装 |
-| Windows | `python` | 也可能是 `py`，或 DeskClaw 内置 `~/.deskclaw/python/python.exe` |
+模板编辑时检查残留占位文本:
+```bash
+python -m markitdown output.pptx | grep -iE "\bx{3,}\b|lorem|ipsum|\bTODO|\[insert"
+```
+
+### 验证循环
+
+1. 生成 → markitdown 检查内容
+2. 列出发现的问题
+3. 修复
+4. 重新验证
+5. 重复直到无新问题
+
+---
+
+## 图标 (react-icons)
+
+使用 react-icons 将 SVG 图标栅格化为 PNG，提升视觉效果。
+
+```javascript
+const React = require("react");
+const ReactDOMServer = require("react-dom/server");
+const sharp = require("sharp");
+const { FaCheckCircle } = require("react-icons/fa");
+
+function renderIconSvg(IconComponent, color = "#000000", size = 256) {
+  return ReactDOMServer.renderToStaticMarkup(
+    React.createElement(IconComponent, { color, size: String(size) })
+  );
+}
+
+async function iconToBase64Png(IconComponent, color, size = 256) {
+  const svg = renderIconSvg(IconComponent, color, size);
+  const pngBuffer = await sharp(Buffer.from(svg)).png().toBuffer();
+  return "image/png;base64," + pngBuffer.toString("base64");
+}
+```
+
+图标库: `react-icons/fa` (Font Awesome), `react-icons/md` (Material), `react-icons/hi` (Heroicons)。
+
+注意: 图标渲染是异步的，应该在 createSlide() 之前预处理好，将 base64 数据传入同步函数。
+
+---
+
+## 中文本地化
+
+生成中文内容时:
+- 字体: 微软雅黑 (Microsoft YaHei)
+- 正文字号: 16-18pt (比英文大 2pt)
+- 行高: 1.5-1.8x
+- 每行中文字符: 15-20 个
+- 中英文/数字之间加半角空格: `会议有 12 位参与者`
+
+---
+
+## 依赖安装
+
+运行 `python bootstrap.py` 自动安装所有依赖。
+
+手动安装:
+```bash
+# Python
+pip install "markitdown[pptx]" Pillow defusedxml lxml -i https://pypi.tuna.tsinghua.edu.cn/simple
+
+# Node.js
+npm install pptxgenjs react-icons react react-dom sharp --registry=https://registry.npmmirror.com
+```

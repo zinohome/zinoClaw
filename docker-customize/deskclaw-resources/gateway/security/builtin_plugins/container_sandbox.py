@@ -1,4 +1,4 @@
-# version: 4
+# version: 6
 # author: DeskClaw
 """Container sandbox security plugin — routes tool calls to an isolated
 container when the user has enabled sandbox mode.
@@ -25,7 +25,7 @@ import logging
 import shlex
 import sys
 
-from ...paths import resolve_allowlist_path, resolve_workspace_path
+from gateway.paths import resolve_allowlist_path, resolve_workspace_path
 logger = logging.getLogger("deskclaw.security.sandbox_plugin")
 
 ALLOWLIST_FILE = resolve_allowlist_path()

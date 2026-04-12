@@ -1,9 +1,9 @@
 {
   "slug": "video-generation",
-  "version": "2.6.0",
-  "registry": "https://skills.nodeskai.com",
-  "installedAt": "2026-04-04T01:28:07.909Z",
+  "version": "2.6.2",
+  "registry": "https://skills.deskclaw.me",
+  "installedAt": "2026-04-10T15:08:52.763Z",
   "inspectName": "视频生成（Video Generation）",
   "inspectDescription": "文生视频、图生视频，基于 Seedance 2.0 模型，支持横竖屏、自定义时长与分辨率。",
-  "inspectVersion": "2.6.0"
+  "inspectVersion": "2.6.2"
 }

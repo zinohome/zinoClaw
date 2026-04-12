@@ -126,6 +126,8 @@ RUN set -eux; \
 # 每次构建都会安装 Microsoft 仓库最新的 code 版本
 # 注意: packages.microsoft.com 在美国，构建时可能需要等待
 # -----------------------------------------------------------------------------
+COPY docker-customize/feishu-copilot-handoff-0.2.56.vsix /tmp/feishu-copilot-handoff-0.2.56.vsix
+
 RUN wget -qO- https://packages.microsoft.com/keys/microsoft.asc | \
     gpg --dearmor > /tmp/microsoft.gpg && \
     install -D -o root -g root -m 644 /tmp/microsoft.gpg /usr/share/keyrings/microsoft.gpg && \
@@ -141,6 +143,13 @@ RUN wget -qO- https://packages.microsoft.com/keys/microsoft.asc | \
     > /etc/apt/sources.list.d/vscode.sources && \
     apt-get update && \
     apt-get install -y --no-install-recommends code && \
+    mkdir -p /opt/vscode-extensions /custom-cont-init.d && \
+    code --install-extension /tmp/feishu-copilot-handoff-0.2.56.vsix --no-sandbox --user-data-dir /tmp --extensions-dir /opt/vscode-extensions && \
+    # 保留原 .vsix 包至 /opt/vscode-extensions 目录备用
+    cp /tmp/feishu-copilot-handoff-0.2.56.vsix /opt/vscode-extensions/ && \
+    printf "#!/bin/bash\nmkdir -p /config/.vscode/extensions\ncp -rn /opt/vscode-extensions/* /config/.vscode/extensions/\nchown -R abc:abc /config/.vscode\n" > /custom-cont-init.d/99-install-vscode-extensions && \
+    chmod +x /custom-cont-init.d/99-install-vscode-extensions && \
+    rm -rf /tmp/feishu-copilot-handoff-0.2.56.vsix /tmp/Cache /tmp/CachedData /tmp/Code /tmp/Crashpad /tmp/DawnCache /tmp/GPUCache && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
@@ -157,10 +166,9 @@ RUN apt-get install -y /tmp/cursor.deb && \
     rm -rf /var/lib/apt/lists/*
 
 # -----------------------------------------------------------------------------
-# 第六步: 安装 Antigravity
-# 通过 Google Cloud Artifact Registry apt 源安装
-# 步骤: 添加 GPG 密钥 → 添加 apt 源 → apt install antigravity
-# 注意: 此源服务器在美国，如构建超时可多试几次
+# 第六步: 安装 Antigravity 和 Cockpit Tools
+# 通过 Google Cloud Artifact Registry apt 源安装 Antigravity
+# 通过 GitHub Release 下载安装 Cockpit Tools
 # -----------------------------------------------------------------------------
 RUN mkdir -p /etc/apt/keyrings && \
     # 下载并添加 Antigravity 仓库签名密钥
@@ -172,6 +180,10 @@ RUN mkdir -p /etc/apt/keyrings && \
     # 更新缓存并安装
     apt-get update && \
     apt-get install -y --no-install-recommends antigravity && \
+    # 安装 cockpit tools
+    wget -qO /tmp/cockpit-tools.deb https://github.com/jlcodes99/cockpit-tools/releases/download/v0.21.1/Cockpit.Tools_0.21.1_amd64.deb && \
+    apt-get install -y /tmp/cockpit-tools.deb && \
+    rm -f /tmp/cockpit-tools.deb && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 

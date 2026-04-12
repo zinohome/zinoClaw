@@ -170,15 +170,15 @@ def patch_system_prompt_cache() -> None:
 
     _orig_build = ContextBuilder.build_system_prompt
 
-    def _cached_build_system_prompt(self, skill_names: list[str] | None = None) -> str:
-        key = tuple(skill_names) if skill_names else ()
+    def _cached_build_system_prompt(self, skill_names: list[str] | None = None, **kwargs) -> str:
+        key = (tuple(skill_names) if skill_names else (), tuple(sorted(kwargs.items())))
         now = time.monotonic()
         prev = getattr(self, "_perf_sp_cache", None)
         if prev is not None:
             cached_key, cached_ts, cached_val = prev
             if cached_key == key and (now - cached_ts) < _SP_CACHE_TTL:
                 return cached_val
-        result = _orig_build(self, skill_names)
+        result = _orig_build(self, skill_names, **kwargs)
         self._perf_sp_cache = (key, now, result)
         return result
 
@@ -197,9 +197,9 @@ def patch_nonblocking_consolidation(agent_loop) -> None:
     We patch the consolidator so it always schedules consolidation in the
     background and returns immediately.
     """
-    mc = getattr(agent_loop, "memory_consolidator", None)
+    mc = getattr(agent_loop, "consolidator", None) or getattr(agent_loop, "memory_consolidator", None)
     if mc is None:
-        logger.warning("AgentLoop has no memory_consolidator — skipping non-blocking consolidation patch")
+        logger.warning("AgentLoop has no consolidator — skipping non-blocking consolidation patch")
         return
     _original = mc.maybe_consolidate_by_tokens.__func__
 

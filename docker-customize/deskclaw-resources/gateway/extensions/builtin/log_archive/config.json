@@ -1,0 +1,6 @@
+{
+  "enabled": false,
+  "priority": 100,
+  "dir": "~/.deskclaw/logs",
+  "format": "jsonl"
+}

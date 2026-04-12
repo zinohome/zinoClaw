@@ -2,7 +2,7 @@
 name: image-generation
 description: "Generate or edit images via NodeStudio API. Use when the user asks to create, generate, draw, illustrate an image (text-to-image), OR edit, modify, retouch, remove, erase, replace, fix, enhance, change elements in an existing image (image-to-image). Covers: 生成图片、画图、修图、编辑图片、抹除、去除、替换、美化、P图、图片处理。"
 slug: image-generation
-version: 1.10.0
+version: 1.10.2
 displayName: 图片生成（Image Generation）
 summary: 文生图 + 图生图：Seedream V5.0 Lite / MiniDesk Pro / MiniDesk 2，支持多比例多分辨率，最多 14 张参考图。
 tags: image, generation, nodestudio, seedream, ai-art

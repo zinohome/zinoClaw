@@ -20,10 +20,11 @@ def register(mcp) -> None:
         - loop_guard — 循环守卫（死循环检测、灵敏度配置、MCP 工具说明）
         - cron — 定时任务管理（创建、查看、删除、调度类型）
         - diagnostics — 故障诊断与升级处理（日志位置、自诊断工具、处理原则、反馈引导）
+        - extensions — 扩展管理（目录结构、内置扩展、工具流程、创建新扩展）
         - channels — 外部消息通道配置（飞书、QQ、钉钉、企业微信、微信个人 weixin）
 
         Args:
-            topic: 文档主题名。可选值：system, configuration, security, sandbox, loop_guard, cron, diagnostics, channels。
+            topic: 文档主题名。可选值：system, configuration, security, sandbox, loop_guard, cron, diagnostics, extensions, channels。
         """
         doc = DOCS.get(topic)
         if doc:
