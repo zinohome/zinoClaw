@@ -183,14 +183,17 @@ class ToolSecurityLayer:
     ) -> tuple[Any, list[DLPFinding], str]:
         return await apply_result_pipeline(self, tool, params, result)
 
-    def audit(self, record: AuditRecord):
+    async def audit(self, record: AuditRecord):
         self.audit_log.append(record)
         if len(self.audit_log) > 5000:
             self.audit_log = self.audit_log[-2500:]
 
         for hook in self.after_hooks:
             try:
-                hook(record)
+                if inspect.iscoroutinefunction(hook):
+                    await hook(record)
+                else:
+                    hook(record)
             except Exception:
                 pass
 

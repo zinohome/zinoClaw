@@ -213,6 +213,7 @@ async def persist_agent_outputs(
     ws = Path(workspace).resolve()
     target_dir = ws / "outputs" / _safe_dir_name(session_id)
     target_dir.mkdir(parents=True, exist_ok=True)
+    resolved_target = target_dir.resolve()
 
     loop = asyncio.get_running_loop()
     dedup = await loop.run_in_executor(None, _build_dedup_index, target_dir)
@@ -249,6 +250,16 @@ async def persist_agent_outputs(
                 src = _resolve_through_symlink(Path(item))
                 if not src.is_file():
                     continue
+
+                if src.parent == resolved_target:
+                    rel = str(src.relative_to(ws))
+                    result.append(rel)
+                    if registry:
+                        fh = await loop.run_in_executor(None, _file_hash, src)
+                        registry.register(session_id, "agent", _guess_kind(src.name),
+                                          src.name, path=str(src), content_hash=fh or None)
+                    continue
+
                 h = await loop.run_in_executor(None, _file_hash, src)
                 if h and h in dedup:
                     existing = dedup[h]
@@ -261,7 +272,10 @@ async def persist_agent_outputs(
                 try:
                     await loop.run_in_executor(None, os.symlink, str(src), str(dest))
                 except OSError:
-                    await loop.run_in_executor(None, shutil.copy2, str(src), str(dest))
+                    try:
+                        await loop.run_in_executor(None, shutil.copy2, str(src), str(dest))
+                    except shutil.SameFileError:
+                        pass
                 if h:
                     dedup[h] = dest
                 rel = str(dest.relative_to(ws))

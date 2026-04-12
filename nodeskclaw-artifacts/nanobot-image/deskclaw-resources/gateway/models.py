@@ -57,7 +57,6 @@ class CronScheduleInfo(BaseModel):
 class CronPayloadInfo(BaseModel):
     kind: Literal["system_event", "agent_turn"] = "agent_turn"
     message: str = ""
-    deliver: bool = False
     channel: str | None = None
     to: str | None = None
 
@@ -83,6 +82,34 @@ class CronJobInfo(BaseModel):
 
 class CronJobListResponse(BaseModel):
     jobs: list[CronJobInfo]
+
+
+class CronCreateRequest(BaseModel):
+    name: str
+    schedule: CronScheduleInfo
+    message: str
+    channel: str | None = None
+    to: str | None = None
+    deleteAfterRun: bool = False
+
+
+class CronUpdateRequest(BaseModel):
+    name: str | None = None
+    schedule: CronScheduleInfo | None = None
+    message: str | None = None
+    channel: str | None = None
+    to: str | None = None
+    deleteAfterRun: bool | None = None
+
+
+class CronCreateResponse(BaseModel):
+    success: bool
+    job: CronJobInfo | None = None
+
+
+class CronUpdateResponse(BaseModel):
+    success: bool
+    job: CronJobInfo | None = None
 
 
 class CronToggleRequest(BaseModel):

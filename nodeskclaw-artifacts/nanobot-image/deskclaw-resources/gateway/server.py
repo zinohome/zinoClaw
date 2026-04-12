@@ -6,6 +6,9 @@ Architecture mirrors nanobot's gateway_bridge: three concurrent loops
 
 from __future__ import annotations
 
+import sys as _sys
+_sys.modules.setdefault("gateway.server", _sys.modules[__name__])
+
 import asyncio
 import json
 import mimetypes
@@ -23,7 +26,7 @@ from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 
-from .agent import GatewayAgent
+from .agent import GatewayAgent, fallback_notify_var
 from .paths import resolve_allowlist_path
 from .security import current_ws as _current_ws_var
 from .models import (
@@ -38,6 +41,10 @@ from .models import (
     CronJobStateInfo,
     CronPayloadInfo,
     CronScheduleInfo,
+    CronCreateRequest,
+    CronCreateResponse,
+    CronUpdateRequest,
+    CronUpdateResponse,
     CronToggleRequest,
     CronToggleResponse,
     CronRunResponse,
@@ -62,6 +69,7 @@ _LOCAL_IMG_RE = re.compile(
     re.IGNORECASE,
 )
 _TOOL_HINT_RE = re.compile(r'(\w[\w.-]+)\("?')
+_MCP_START_TIMEOUT = 10.0
 
 
 def _workspace_path() -> str:
@@ -100,21 +108,60 @@ def _file_paths_to_urls(paths: list[str]) -> list[str]:
     return urls
 
 
+try:
+    from .mcp_server import get_session_manager, _starlette_app as _mcp_app
+    _mcp_available = True
+except Exception as _exc:
+    logger.error("DeskClaw MCP module failed to load: {}", _exc)
+    _mcp_available = False
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    mcp_runtime = None
+    mcp_enabled = False
+
+    if _mcp_available:
+        try:
+            sm = get_session_manager()
+            mcp_runtime = sm.run()
+            await asyncio.wait_for(
+                mcp_runtime.__aenter__(),
+                timeout=_MCP_START_TIMEOUT,
+            )
+            mcp_enabled = True
+            logger.info("DeskClaw MCP server started")
+        except asyncio.TimeoutError:
+            logger.error(
+                "DeskClaw MCP init timed out ({}s) — this is unexpected, "
+                "gateway will start without MCP",
+                _MCP_START_TIMEOUT,
+            )
+            mcp_runtime = None
+        except Exception as exc:
+            logger.error(
+                "DeskClaw MCP init failed: {} — gateway will start without MCP", exc,
+            )
+            mcp_runtime = None
+
     try:
-        from .mcp_server import get_session_manager
-        sm = get_session_manager()
-        async with sm.run():
-            await agent.start()
-            yield
-            await agent.stop()
-    except Exception as _e:
-        import logging
-        logging.getLogger(__name__).warning("Built-in MCP init failed: %s", _e)
         await agent.start()
+    except Exception:
+        if mcp_enabled and mcp_runtime is not None:
+            try:
+                await mcp_runtime.__aexit__(None, None, None)
+            except Exception as exc:
+                logger.warning("DeskClaw MCP cleanup failed: {}", exc)
+        raise
+    try:
         yield
+    finally:
         await agent.stop()
+        if mcp_enabled and mcp_runtime is not None:
+            try:
+                await mcp_runtime.__aexit__(None, None, None)
+            except Exception as exc:
+                logger.warning("DeskClaw MCP cleanup failed: {}", exc)
 
 
 app = FastAPI(title="DeskClaw Gateway Adapter", version="0.1.0", lifespan=lifespan)
@@ -126,12 +173,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-try:
-    from .mcp_server import _starlette_app as _mcp_app
+if _mcp_available:
     app.mount("/deskclaw", _mcp_app)
-except Exception as _mcp_err:
-    import logging as _log
-    _log.getLogger(__name__).warning("Built-in MCP server failed to mount: %s", _mcp_err)
 
 
 # ── HTTP endpoints ─────────────────────────────────────────────────
@@ -216,16 +259,21 @@ async def serve_file(file_path: str):
     if not ws:
         raise HTTPException(status_code=503, detail="Agent not ready")
     ws_resolved = Path(ws).resolve()
+    import tempfile, sys
     cache_dir = Path.home() / ".deskclaw_cache"
     media_dir = Path.home() / ".deskclaw" / "media"
     downloads_dir = Path.home() / "Downloads"
+    temp_dir = Path(tempfile.gettempdir())
     fp_logical = Path(os.path.normpath(str(fp)))
     allowed_prefixes = [
         str(ws_resolved) + os.sep,
         str(cache_dir.resolve()) + os.sep,
         str(media_dir.resolve()) + os.sep,
         str(downloads_dir.resolve()) + os.sep,
+        str(temp_dir.resolve()) + os.sep,
     ]
+    if sys.platform == "darwin":
+        allowed_prefixes.append(str(Path("/tmp").resolve()) + os.sep)
     if not (
         any(str(resolved).startswith(p) for p in allowed_prefixes)
         or str(fp_logical).startswith(str(ws_resolved) + os.sep)
@@ -256,7 +304,6 @@ def _cron_job_to_info(job) -> CronJobInfo:
         payload=CronPayloadInfo(
             kind=job.payload.kind,
             message=job.payload.message,
-            deliver=job.payload.deliver,
             channel=job.payload.channel,
             to=job.payload.to,
         ),
@@ -272,12 +319,71 @@ def _cron_job_to_info(job) -> CronJobInfo:
     )
 
 
+def _schedule_info_to_schedule(info: CronScheduleInfo):
+    """Convert API CronScheduleInfo (camelCase) to nanobot CronSchedule (snake_case)."""
+    from nanobot.cron.types import CronSchedule
+    return CronSchedule(
+        kind=info.kind,
+        at_ms=info.atMs,
+        every_ms=info.everyMs,
+        expr=info.expr,
+        tz=info.tz,
+    )
+
+
 def _get_cron():
     """Get the CronService or raise 503."""
     cron = agent._cron
     if cron is None:
         raise HTTPException(status_code=503, detail="Cron service not available")
     return cron
+
+
+@app.post("/cron/jobs")
+async def cron_create_job(req: CronCreateRequest) -> CronCreateResponse:
+    cron = _get_cron()
+    try:
+        schedule = _schedule_info_to_schedule(req.schedule)
+        job = cron.add_job(
+            name=req.name,
+            schedule=schedule,
+            message=req.message,
+            channel=req.channel,
+            to=req.to,
+            delete_after_run=req.deleteAfterRun,
+        )
+        return CronCreateResponse(success=True, job=_cron_job_to_info(job))
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.patch("/cron/jobs/{job_id}")
+async def cron_update_job(job_id: str, req: CronUpdateRequest) -> CronUpdateResponse:
+    cron = _get_cron()
+    kwargs: dict = {}
+    if req.name is not None:
+        kwargs["name"] = req.name
+    if req.schedule is not None:
+        kwargs["schedule"] = _schedule_info_to_schedule(req.schedule)
+    if req.message is not None:
+        kwargs["message"] = req.message
+    if "channel" in req.model_fields_set:
+        kwargs["channel"] = req.channel
+    if "to" in req.model_fields_set:
+        kwargs["to"] = req.to
+    if req.deleteAfterRun is not None:
+        kwargs["delete_after_run"] = req.deleteAfterRun
+    if not kwargs:
+        raise HTTPException(status_code=400, detail="No fields to update")
+    try:
+        result = cron.update_job(job_id, **kwargs)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    if result == "not_found":
+        raise HTTPException(status_code=404, detail="Job not found")
+    if result == "protected":
+        raise HTTPException(status_code=403, detail="System jobs cannot be edited")
+    return CronUpdateResponse(success=True, job=_cron_job_to_info(result))
 
 
 @app.get("/cron/jobs")
@@ -341,6 +447,7 @@ async def cron_status() -> CronStatusResponse:
 @app.get("/cron/migration")
 async def cron_migration_status():
     return agent.get_cron_migration_status()
+
 
 
 # ── Sandbox / Security endpoints ──────────────────────────────────
@@ -491,6 +598,20 @@ async def set_full_access(body: _FullAccessBody):
     allowlist_path.parent.mkdir(parents=True, exist_ok=True)
     allowlist_path.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
     return {"ok": True, "full_access": body.enabled}
+
+
+@app.post("/security/loop-guard/reload")
+async def loop_guard_reload():
+    """Force-reload the loop guard config from disk into the running plugin."""
+    import sys as _sys
+    mod = _sys.modules.get("security_plugin.loop_guard")
+    if mod and hasattr(mod, "_safe_load_config"):
+        try:
+            mod._config = mod._safe_load_config()
+            return {"ok": True, "reloaded": True}
+        except Exception as e:
+            return {"ok": False, "error": str(e)}
+    return {"ok": True, "reloaded": False, "reason": "plugin_not_loaded"}
 
 
 @app.get("/security/allowlist")
@@ -691,15 +812,17 @@ async def websocket_chat(ws: WebSocket):
         except (asyncio.CancelledError, Exception):
             pass
         try:
-            from nanobot.bus.events import InboundMessage as _Inbound
-            _ch, _cid = _parse_session(session_id)
-            stop_msg = _Inbound(
-                channel=_ch,
-                sender_id="user",
-                chat_id=_cid,
-                content="/stop",
-            )
-            await agent._agent._handle_stop(stop_msg)
+            loop = agent._agent
+            tasks = loop._active_tasks.pop(session_id, [])
+            for t in tasks:
+                if not t.done():
+                    t.cancel()
+            for t in tasks:
+                try:
+                    await t
+                except (asyncio.CancelledError, Exception):
+                    pass
+            await loop.subagents.cancel_by_session(session_id)
         except Exception:
             pass
 
@@ -812,12 +935,23 @@ async def websocket_chat(ws: WebSocket):
                 chat_id=_cid,
                 content=enriched, media=abs_media or [],
             )
+            def _on_fallback(orig: str, fb: str) -> None:
+                _enqueue({
+                    "type": "status", "kind": "fallback",
+                    "originalModel": orig, "fallbackModel": fb,
+                    "session_id": session_id,
+                })
+
+            _fb_token = fallback_notify_var.set(_on_fallback)
             _pm_kwargs: dict = dict(
                 session_key=session_id, on_progress=on_progress,
             )
             if steering_hook is not None:
                 _pm_kwargs["extra_hooks"] = [steering_hook]
-            response = await agent._agent._process_message(inbound, **_pm_kwargs)
+            try:
+                response = await agent._agent._process_message(inbound, **_pm_kwargs)
+            finally:
+                fallback_notify_var.reset(_fb_token)
             _pm_completed = True
             result = response.content if response else ""
 

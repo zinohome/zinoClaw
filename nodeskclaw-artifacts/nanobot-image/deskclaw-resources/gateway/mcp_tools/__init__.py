@@ -76,13 +76,14 @@ mcp = FastMCP(
 # NOTE: sub-modules may ``from . import NANOBOT_CONFIG_PATH, ...`` —
 # all shared symbols above MUST be defined before these imports.
 
-from . import gateway, sandbox, loop_guard, docs, mcp_config  # noqa: E402
+from . import gateway, sandbox, loop_guard, docs, mcp_config, extensions  # noqa: E402
 
 gateway.register(mcp)
 sandbox.register(mcp)
 loop_guard.register(mcp)
 docs.register(mcp)
 mcp_config.register(mcp)
+extensions.register(mcp)
 
 # ── Public API (re-exported by mcp_server.py for server.py) ──────
 

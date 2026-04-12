@@ -5,6 +5,8 @@ from __future__ import annotations
 import importlib.util
 import json
 import re
+import sys
+import types
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -94,6 +96,24 @@ def ensure_builtin_plugins(layer: ToolSecurityLayer) -> None:
             pass
 
 
+_PLUGIN_PKG = "security_plugin"
+
+
+def _ensure_virtual_package() -> None:
+    """Create a virtual ``security_plugin`` package in sys.modules.
+
+    Plugins are registered as ``security_plugin.<name>`` so that other
+    code (e.g. hot-reload in MCP tools) can find them via sys.modules.
+    Without a proper package entry, Python's import machinery may fail
+    when resolving the dotted module name during exec_module.
+    """
+    if _PLUGIN_PKG not in sys.modules:
+        pkg = types.ModuleType(_PLUGIN_PKG)
+        pkg.__path__ = []
+        pkg.__package__ = _PLUGIN_PKG
+        sys.modules[_PLUGIN_PKG] = pkg
+
+
 def load_security_plugins(layer: ToolSecurityLayer) -> None:
     """Load user-defined security plugins from ~/.deskclaw/security-plugins/.
 
@@ -105,22 +125,22 @@ def load_security_plugins(layer: ToolSecurityLayer) -> None:
       - transform_results: list[Callable]      → additional transforms, same signature
       - DLP_PATTERNS: dict[str, list[str]]
     """
-    import sys as _sys
-
     if not layer._plugin_dir.exists():
         return
+
+    _ensure_virtual_package()
+
     loaded = 0
     for py_file in sorted(layer._plugin_dir.glob("*.py")):
+        dotted = f"{_PLUGIN_PKG}.{py_file.stem}"
         try:
-            spec = importlib.util.spec_from_file_location(
-                f"security_plugin.{py_file.stem}", str(py_file)
-            )
+            spec = importlib.util.spec_from_file_location(dotted, str(py_file))
             if not spec or not spec.loader:
                 continue
             mod = importlib.util.module_from_spec(spec)
+            mod.__package__ = _PLUGIN_PKG
             spec.loader.exec_module(mod)
-            import sys as _sys2
-            _sys2.modules[f"security_plugin.{py_file.stem}"] = mod
+            sys.modules[dotted] = mod
 
             if hasattr(mod, "on_before") and callable(mod.on_before):
                 layer.before_hooks.append(mod.on_before)
@@ -141,12 +161,12 @@ def load_security_plugins(layer: ToolSecurityLayer) -> None:
                     layer.custom_dlp_patterns.setdefault(cat, []).extend(compiled)
 
             loaded += 1
-            print(f"[Security] Loaded security plugin: {py_file.name}", file=_sys.stderr, flush=True)
+            print(f"[Security] Loaded security plugin: {py_file.name}", file=sys.stderr, flush=True)
         except Exception as e:
-            print(f"[Security] Failed to load security plugin {py_file.name}: {e}", file=_sys.stderr, flush=True)
+            print(f"[Security] Failed to load security plugin {py_file.name}: {e}", file=sys.stderr, flush=True)
 
     if loaded:
-        print(f"[Security] {loaded} security plugin(s) loaded from {layer._plugin_dir}", file=_sys.stderr, flush=True)
+        print(f"[Security] {loaded} security plugin(s) loaded from {layer._plugin_dir}", file=sys.stderr, flush=True)
 
 
 def default_plugin_dir() -> Path:

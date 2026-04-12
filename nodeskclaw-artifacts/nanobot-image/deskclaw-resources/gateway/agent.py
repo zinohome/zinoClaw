@@ -7,21 +7,28 @@ gateway-venv is prepended per subprocess only (nanobot package unchanged).
 from __future__ import annotations
 
 import asyncio
+import contextvars
 import functools
 import json as _json
 import uuid
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 import os
+
+fallback_notify_var: contextvars.ContextVar[Callable[[str, str], None] | None] = contextvars.ContextVar(
+    "fallback_notify", default=None,
+)
 
 from nanobot.config.loader import load_config, set_config_path
 from nanobot.config.schema import Config
 
 from .exec_tool_patch import install as _install_deskclaw_exec_tool
+from .text_file_patch import install as _install_text_file_patch
 from .paths import resolve_allowlist_path, resolve_nanobot_config_path
 
 _install_deskclaw_exec_tool()
+_install_text_file_patch()
 
 from nanobot.agent.loop import AgentLoop
 from nanobot.bus.queue import MessageBus
@@ -47,6 +54,32 @@ def _resolve_provider_backend(spec: Any, provider_name: str | None, model: str) 
     return "openai_compat"
 
 
+def _detect_system_timezone() -> str | None:
+    """Detect the system's IANA timezone name (e.g. 'Asia/Shanghai').
+
+    Returns None if detection fails, so callers can fall back to UTC.
+    """
+    tz_env = os.environ.get("TZ", "").strip()
+    if tz_env:
+        try:
+            from zoneinfo import ZoneInfo
+            ZoneInfo(tz_env)
+            return tz_env
+        except Exception:
+            pass
+    try:
+        target = os.path.realpath("/etc/localtime")
+        idx = target.find("/zoneinfo/")
+        if idx != -1:
+            candidate = target[idx + len("/zoneinfo/"):]
+            from zoneinfo import ZoneInfo
+            ZoneInfo(candidate)
+            return candidate
+    except Exception:
+        pass
+    return None
+
+
 def _spec_exempt_from_api_key(spec: Any) -> bool:
     if spec is None:
         return False
@@ -65,6 +98,202 @@ def _merge_deskclaw_version_header(extra: dict[str, str] | None) -> dict[str, st
     merged = dict(extra) if extra else {}
     merged.setdefault("X-DeskClaw-Version", ver)
     return merged
+
+
+_LLM_HTTP_TIMEOUT = float(os.environ.get("DESKCLAW_LLM_TIMEOUT", "120"))
+
+
+def _apply_llm_timeout(provider: Any) -> None:
+    """Set HTTP-level timeout on the provider's SDK client (openai / anthropic)."""
+    client = getattr(provider, "_client", None)
+    if client is None:
+        return
+    try:
+        import httpx
+        client.timeout = httpx.Timeout(_LLM_HTTP_TIMEOUT, connect=10.0)
+    except Exception:
+        pass
+
+
+def _make_provider_for_model(config: Config, model: str) -> Any:
+    """Create an LLM provider for an arbitrary model string.
+
+    Re-uses the same resolution logic as ``_make_provider`` but accepts any
+    model name so that fallback models get their own provider instances.
+    """
+    import sys
+
+    from nanobot.providers.base import GenerationSettings
+    from nanobot.providers.registry import find_by_name
+
+    provider_name = config.get_provider_name(model)
+    p = config.get_provider(model)
+    spec = find_by_name(provider_name) if provider_name else None
+    backend = _resolve_provider_backend(spec, provider_name, model)
+    api_base = config.get_api_base(model)
+
+    if p is None:
+        from nanobot.providers.registry import PROVIDERS
+        for _spec in PROVIDERS:
+            candidate = getattr(config.providers, _spec.name, None)
+            if candidate and candidate.api_base:
+                p = candidate
+                api_base = candidate.api_base
+                provider_name = _spec.name
+                spec = _spec
+                backend = _resolve_provider_backend(spec, provider_name, model)
+                break
+
+    if backend == "openai_codex":
+        from nanobot.providers.openai_codex_provider import OpenAICodexProvider
+        provider = OpenAICodexProvider(default_model=model)
+    elif backend == "github_copilot":
+        from nanobot.providers.github_copilot_provider import GitHubCopilotProvider
+        provider = GitHubCopilotProvider(default_model=model)
+    elif backend == "azure_openai":
+        from nanobot.providers.azure_openai_provider import AzureOpenAIProvider
+        provider = AzureOpenAIProvider(
+            api_key=p.api_key if p else None,
+            api_base=p.api_base if p else None,
+            default_model=model,
+        )
+    elif backend == "anthropic":
+        from nanobot.providers.anthropic_provider import AnthropicProvider
+        provider = AnthropicProvider(
+            api_key=p.api_key if p else None,
+            api_base=api_base,
+            default_model=model,
+            extra_headers=_merge_deskclaw_version_header(
+                getattr(p, "extra_headers", None) if p else None
+            ),
+        )
+    else:
+        from nanobot.providers.openai_compat_provider import OpenAICompatProvider
+        provider = OpenAICompatProvider(
+            api_key=p.api_key if p else None,
+            api_base=api_base,
+            default_model=model,
+            extra_headers=_merge_deskclaw_version_header(
+                getattr(p, "extra_headers", None) if p else None
+            ),
+            spec=spec,
+        )
+
+    defaults = config.agents.defaults
+    provider.generation = GenerationSettings(
+        temperature=defaults.temperature,
+        max_tokens=defaults.max_tokens,
+        reasoning_effort=defaults.reasoning_effort,
+    )
+    _apply_llm_timeout(provider)
+    return provider
+
+
+def _make_provider_from_entry(entry: dict, config: Config) -> Any:
+    """Create an LLM provider from an explicit fallback entry with its own API credentials."""
+    from nanobot.providers.base import GenerationSettings
+
+    model = entry.get("model", "")
+    api_format = entry.get("apiFormat", entry.get("api_format", "openai"))
+    api_key = entry.get("apiKey", entry.get("api_key", ""))
+    api_url = entry.get("apiUrl", entry.get("api_url", ""))
+
+    if api_format == "anthropic":
+        from nanobot.providers.anthropic_provider import AnthropicProvider
+        provider = AnthropicProvider(
+            api_key=api_key or None,
+            api_base=api_url or None,
+            default_model=model,
+            extra_headers=_merge_deskclaw_version_header(None),
+        )
+    else:
+        from nanobot.providers.openai_compat_provider import OpenAICompatProvider
+        provider = OpenAICompatProvider(
+            api_key=api_key or None,
+            api_base=api_url or "https://api.openai.com/v1",
+            default_model=model,
+            extra_headers=_merge_deskclaw_version_header(None),
+        )
+
+    defaults = config.agents.defaults
+    provider.generation = GenerationSettings(
+        temperature=defaults.temperature,
+        max_tokens=defaults.max_tokens,
+        reasoning_effort=defaults.reasoning_effort,
+    )
+    _apply_llm_timeout(provider)
+    return provider
+
+
+def _load_fallback_entries() -> dict[str, dict]:
+    """Load per-model API configs from ``fallback_entries.json`` (written by DeskClaw IPC)."""
+    import json as _json
+    from .paths import resolve_nanobot_home
+
+    p = resolve_nanobot_home() / "fallback_entries.json"
+    try:
+        raw = _json.loads(p.read_text(encoding="utf-8"))
+        if isinstance(raw, list):
+            return {e["model"]: e for e in raw if isinstance(e, dict) and e.get("model")}
+    except Exception:
+        pass
+    return {}
+
+
+class _FallbackNotifyProxy:
+    """Thin proxy around an LLM provider that emits a UI notification via
+    ``fallback_notify_var`` each time the provider is actually used for
+    inference.  The nanobot ``AgentRunner`` caches fallback providers, so
+    placing the notification inside the factory function only fires once.
+    By wrapping the provider, the notification fires on every request."""
+
+    __slots__ = ("_provider", "_primary", "_fallback")
+
+    def __init__(self, provider: Any, primary_model: str, fallback_model: str) -> None:
+        self._provider = provider
+        self._primary = primary_model
+        self._fallback = fallback_model
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._provider, name)
+
+    def _emit(self) -> None:
+        notify = fallback_notify_var.get(None)
+        if notify:
+            notify(self._primary, self._fallback)
+
+    async def chat_with_retry(self, **kwargs: Any) -> Any:
+        self._emit()
+        return await self._provider.chat_with_retry(**kwargs)
+
+    async def chat_stream_with_retry(self, **kwargs: Any) -> Any:
+        self._emit()
+        return await self._provider.chat_stream_with_retry(**kwargs)
+
+
+def _make_gateway_provider_factory(config: Config):
+    """Build a cached factory for fallback model providers (gateway side).
+
+    Prefers explicit entries from ``fallback_entries.json`` (each with its own
+    API credentials) when present; falls back to config-based resolution.
+
+    Returns a ``_FallbackNotifyProxy`` so the frontend receives a transient
+    notice every time a fallback model is used — without touching nanobot core.
+    """
+    cache: dict[str, Any] = {}
+    entry_map = _load_fallback_entries()
+    primary_model = config.agents.defaults.model
+
+    def factory(model: str):
+        if model not in cache:
+            entry = entry_map.get(model)
+            if entry:
+                cache[model] = _make_provider_from_entry(entry, config)
+            else:
+                cache[model] = _make_provider_for_model(config, model)
+        return _FallbackNotifyProxy(cache[model], primary_model, model)
+
+    return factory
 
 
 def _make_provider(config: Config) -> tuple:
@@ -120,6 +349,10 @@ def _make_provider(config: Config) -> tuple:
         from nanobot.providers.openai_codex_provider import OpenAICodexProvider
 
         provider = OpenAICodexProvider(default_model=model)
+    elif backend == "github_copilot":
+        from nanobot.providers.github_copilot_provider import GitHubCopilotProvider
+
+        provider = GitHubCopilotProvider(default_model=model)
     elif backend == "azure_openai":
         from nanobot.providers.azure_openai_provider import AzureOpenAIProvider
 
@@ -158,6 +391,7 @@ def _make_provider(config: Config) -> tuple:
         max_tokens=defaults.max_tokens,
         reasoning_effort=defaults.reasoning_effort,
     )
+    _apply_llm_timeout(provider)
     return provider, model
 
 
@@ -230,6 +464,7 @@ class GatewayAgent:
         self._cron_migration_status: str = "idle"  # idle | running | done | failed
         self._cron_migration_count: int = 0
         self._cron_migration_task: asyncio.Task | None = None
+        self._extension_registry = None  # ExtensionRegistry if loaded
 
     def _verify_cron_store(self) -> None:
         """After CronService.start(), compare loaded jobs against the backup.
@@ -342,19 +577,30 @@ class GatewayAgent:
             session_manager=self.session_manager,
         )
 
-        for attr in ("context_window_tokens", "reasoning_effort", "timezone"):
+        for attr in (
+            "context_window_tokens", "context_block_limit",
+            "max_tool_result_chars", "provider_retry_mode",
+            "reasoning_effort", "timezone", "unified_session",
+        ):
             val = getattr(defaults, attr, None)
             if val is not None:
                 kwargs[attr] = val
+
+        if kwargs.get("timezone", "UTC") == "UTC":
+            detected = _detect_system_timezone()
+            if detected:
+                kwargs["timezone"] = detected
+
+        if defaults.fallback_models:
+            kwargs["fallback_models"] = defaults.fallback_models
+            kwargs["provider_factory"] = _make_gateway_provider_factory(self.config)
 
         if hasattr(self.config.tools, "exec"):
             kwargs["exec_config"] = self.config.tools.exec
         if hasattr(self.config.tools, "mcp_servers"):
             kwargs["mcp_servers"] = self.config.tools.mcp_servers
         if hasattr(self.config.tools, "web") and self.config.tools.web:
-            web = self.config.tools.web
-            kwargs["web_search_config"] = web.search
-            kwargs["web_proxy"] = getattr(web, "proxy", None)
+            kwargs["web_config"] = self.config.tools.web
         if hasattr(self.config.tools, "restrict_to_workspace"):
             kwargs["restrict_to_workspace"] = self.config.tools.restrict_to_workspace
         if hasattr(self.config, "channels"):
@@ -413,31 +659,73 @@ class GatewayAgent:
 
             async def _on_cron_job(job: _CJ) -> str | None:
                 import time as _time
+                from nanobot.agent.tools.cron import CronTool as _CT
+                from nanobot.agent.tools.message import MessageTool as _MT
+                from nanobot.utils.evaluator import evaluate_response as _evaluate
+                from nanobot.bus.events import OutboundMessage as _Outbound
                 start_ms = int(_time.time() * 1000)
                 session_key = f"cron:{job.id}"
+                job_channel = job.payload.channel or "cron"
+                job_chat_id = job.payload.to or job.id
                 error = None
                 result = None
+
+                reminder_note = (
+                    "[Scheduled Task] Timer finished.\n\n"
+                    f"Task '{job.name}' has been triggered.\n"
+                    f"Scheduled instruction: {job.payload.message}"
+                )
+
+                cron_tool = self._agent.tools.get("cron")
+                cron_token = None
+                if isinstance(cron_tool, _CT):
+                    cron_token = cron_tool.set_cron_context(True)
                 try:
                     result = await self._agent.process_direct(
-                        content=job.payload.message,
+                        content=reminder_note,
                         session_key=session_key,
-                        channel="cron",
-                        chat_id=job.id,
+                        channel=job_channel,
+                        chat_id=job_chat_id,
                     )
                 except Exception as exc:
                     error = str(exc)
+                finally:
+                    if isinstance(cron_tool, _CT) and cron_token is not None:
+                        cron_tool.reset_cron_context(cron_token)
+
+                response = result.content if result else ""
+
+                if not error:
+                    message_tool = self._agent.tools.get("message")
+                    already_sent = isinstance(message_tool, _MT) and message_tool._sent_in_turn
+
+                    if not already_sent and job.payload.to and response:
+                        try:
+                            should_notify = await _evaluate(
+                                response, job.payload.message,
+                                self._agent.provider, self._agent.model,
+                            )
+                            if should_notify:
+                                await self._agent.bus.publish_outbound(_Outbound(
+                                    channel=job_channel,
+                                    chat_id=job.payload.to,
+                                    content=response,
+                                ))
+                        except Exception:
+                            pass
+
                 duration_ms = int(_time.time() * 1000) - start_ms
                 history.record(job.id, {
                     "runAtMs": start_ms,
                     "status": "error" if error else "ok",
                     "durationMs": duration_ms,
                     "error": error,
-                    "summary": (result.content if result else "")[:500] if not error else None,
+                    "summary": response[:500] if not error else None,
                     "sessionKey": session_key,
                 })
                 if error:
                     raise RuntimeError(error)
-                return result.content if result else ""
+                return response
 
             self._cron.on_job = _on_cron_job
             await self._cron.start()
@@ -463,6 +751,9 @@ class GatewayAgent:
         from .security import ToolSecurityLayer
         self._security = ToolSecurityLayer()
         self._security.install()
+
+        # Load and activate user extensions (~/.deskclaw/extensions/)
+        await self._install_extensions()
 
         # restart_gateway / restart_deskclaw: consume pending action after every turn
         # (WS desktop chat, Feishu, cron process_direct, etc. all use _process_message).
@@ -534,6 +825,50 @@ class GatewayAgent:
         if _cfg.exists():
             shutil.copy2(_cfg, _cfg.with_suffix(".last-good"))
 
+    async def _install_extensions(self) -> None:
+        """Discover and activate user extensions, wire enabled ones into the agent loop."""
+        try:
+            from .extensions.registry import ExtensionRegistry
+            from .extensions.agent_hook import AgentHookAdapter
+
+            registry = ExtensionRegistry()
+            await registry.load_and_activate(
+                workspace=Path(self.workspace),
+                config={"model": self._agent.model if self._agent else None},
+            )
+
+            # Always store the registry so MCP tools can list/toggle
+            # even when no extensions are currently enabled.
+            self._extension_registry = registry
+
+            # Always install patches so that extensions enabled later
+            # (via MCP tools + extension_reload) have working hooks.
+            adapter = AgentHookAdapter(registry)
+            self._agent._extra_hooks.append(adapter)
+
+            from .extensions.security_bridge import install_security_bridge
+            install_security_bridge(registry, self._security)
+
+            from .extensions.turn_patch import install_turn_patch
+            install_turn_patch(registry)
+
+            from .extensions.memory_patch import install_memory_patch
+            install_memory_patch(registry, self._agent)
+
+            import sys as _sys
+            all_count = len(registry.list_all())
+            active_count = len(registry.extensions)
+            print(
+                f"[Extensions] {all_count} installed, {active_count} active",
+                file=_sys.stderr, flush=True,
+            )
+        except Exception as exc:
+            import sys as _sys
+            print(
+                f"[Extensions] Failed to load extensions: {exc}",
+                file=_sys.stderr, flush=True,
+            )
+
     async def stop(self) -> None:
         if self._cron_migration_task and not self._cron_migration_task.done():
             self._cron_migration_task.cancel()
@@ -565,13 +900,18 @@ class GatewayAgent:
                 self._cron.stop()
             except BaseException:
                 pass
+        if self._extension_registry:
+            try:
+                await self._extension_registry.deactivate_all()
+            except BaseException:
+                pass
         if self._agent:
             try:
                 await self._agent.close_mcp()
             except BaseException:
                 pass
             try:
-                await self._agent.stop()
+                self._agent.stop()
             except BaseException:
                 pass
         self._agent = None
@@ -596,18 +936,18 @@ class GatewayAgent:
             "tool_calls": [],
         }
 
-    def get_history(self, session_id: str, max_messages: int = 500) -> list[dict]:
+    def get_history(self, session_id: str) -> list[dict]:
         """Return full session history for UI display.
 
         Mirrors gateway_bridge's get_history: builds tool-card entries and
         extracts message-tool content as standalone assistant bubbles.
+        The frontend paginates via visibleMsgCount, so no server-side
+        truncation is applied — all messages are returned.
         """
         if not self._agent:
             return []
         session = self._agent.sessions.get_or_create(session_id)
         msgs = session.messages
-        if len(msgs) > max_messages:
-            msgs = msgs[-max_messages:]
 
         out: list[dict] = []
         pending_tools: dict[str, dict[str, Any]] = {}

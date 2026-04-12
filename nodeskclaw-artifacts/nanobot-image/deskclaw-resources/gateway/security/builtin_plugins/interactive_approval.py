@@ -1,4 +1,4 @@
-# version: 8
+# version: 10
 # author: DeskClaw
 """Interactive tool approval plugin — Cursor-style Run/Allowlist/Cancel.
 
@@ -48,7 +48,10 @@ import os
 from fnmatch import fnmatch
 from urllib.parse import urlparse
 
-from ...paths import resolve_allowlist_path
+try:
+    from gateway.paths import resolve_allowlist_path
+except ImportError:
+    from ...paths import resolve_allowlist_path
 
 ALLOWLIST_FILE = resolve_allowlist_path()
 
