@@ -50,8 +50,8 @@ RUN printf '%s\n' \
     printf "Package: python3-setuptools python3-pkg-resources\nPin: release n=noble*\nPin-Priority: 1001\n" > /etc/apt/preferences.d/99-downgrade-python && \
     # 更新软件包索引
     apt-get update && \
-    # 全量升级所有已安装包（触发自动降级修复）
-    apt-get dist-upgrade -y && \
+    # 全量升级所有已安装包（通过 --allow-downgrades 允许触发自动降级修复）
+    apt-get dist-upgrade -y --allow-downgrades && \
     # 清理缓存，减小镜像体积
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
