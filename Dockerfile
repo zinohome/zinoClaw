@@ -29,15 +29,21 @@ FROM lscr.io/linuxserver/webtop:ubuntu-kde
 # 备份原始 sources.list 并替换为镜像源（Ubuntu 24.04 Noble）
 RUN printf '%s\n' \
     '# Ubuntu 软件镜像站 - Ubuntu 24.04 Noble' \
-    '# 默认注释了源码镜像以提高 apt update 速度' \
-    'deb http://cn.archive.ubuntu.com/ubuntu/ noble main restricted universe multiverse' \
-    '# deb-src http://cn.archive.ubuntu.com/ubuntu/ noble main restricted universe multiverse' \
-    'deb http://cn.archive.ubuntu.com/ubuntu/ noble-updates main restricted universe multiverse' \
-    '# deb-src http://cn.archive.ubuntu.com/ubuntu/ noble-updates main restricted universe multiverse' \
-    'deb http://cn.archive.ubuntu.com/ubuntu/ noble-backports main restricted universe multiverse' \
-    '# deb-src http://cn.archive.ubuntu.com/ubuntu/ noble-backports main restricted universe multiverse' \
-    'deb http://cn.archive.ubuntu.com/ubuntu/ noble-security main restricted universe multiverse' \
-    '# deb-src http://cn.archive.ubuntu.com/ubuntu/ noble-security main restricted universe multiverse' \
+    '# 默认注释了源码镜像以提高 apt update 速度，如有需要可自行取消注释' \
+    'deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ noble main restricted universe multiverse' \
+    '# deb-src https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ noble main restricted universe multiverse' \
+    'deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ noble-updates main restricted universe multiverse' \
+    '# deb-src https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ noble-updates main restricted universe multiverse' \
+    'deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ noble-backports main restricted universe multiverse' \
+    '# deb-src https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ noble-backports main restricted universe multiverse' \
+    '' \
+    '# 以下安全更新软件源为官方源配置' \
+    'deb http://security.ubuntu.com/ubuntu/ noble-security main restricted universe multiverse' \
+    '# deb-src http://security.ubuntu.com/ubuntu/ noble-security main restricted universe multiverse' \
+    '' \
+    '# 预发布软件源，不建议启用' \
+    '# deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ noble-proposed main restricted universe multiverse' \
+    '# # deb-src https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ noble-proposed main restricted universe multiverse' \
     > /etc/apt/sources.list && \
     # 更新软件包索引
     apt-get update && \
