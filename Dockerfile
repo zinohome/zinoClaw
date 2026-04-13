@@ -26,24 +26,24 @@ FROM lscr.io/linuxserver/webtop:ubuntu-kde
 # 注意: 使用 printf 逐行写入，避免 heredoc 被 Dockerfile linter 误判
 # -----------------------------------------------------------------------------
 
-# 备份原始 sources.list 并替换为镜像源（Ubuntu Resolute Raccoon）
+# 备份原始 sources.list 并替换为镜像源（Ubuntu 24.04 Noble）
 RUN printf '%s\n' \
-    '# Ubuntu 软件镜像站 - Ubuntu Resolute Raccoon' \
+    '# Ubuntu 软件镜像站 - Ubuntu 24.04 Noble' \
     '# 默认注释了源码镜像以提高 apt update 速度，如有需要可自行取消注释' \
-    'deb https://mirrors.aliyun.com/ubuntu/ resolute main restricted universe multiverse' \
-    '# deb-src https://mirrors.aliyun.com/ubuntu/ resolute main restricted universe multiverse' \
-    'deb https://mirrors.aliyun.com/ubuntu/ resolute-updates main restricted universe multiverse' \
-    '# deb-src https://mirrors.aliyun.com/ubuntu/ resolute-updates main restricted universe multiverse' \
-    'deb https://mirrors.aliyun.com/ubuntu/ resolute-backports main restricted universe multiverse' \
-    '# deb-src https://mirrors.aliyun.com/ubuntu/ resolute-backports main restricted universe multiverse' \
+    'deb https://mirrors.aliyun.com/ubuntu/ noble main restricted universe multiverse' \
+    '# deb-src https://mirrors.aliyun.com/ubuntu/ noble main restricted universe multiverse' \
+    'deb https://mirrors.aliyun.com/ubuntu/ noble-updates main restricted universe multiverse' \
+    '# deb-src https://mirrors.aliyun.com/ubuntu/ noble-updates main restricted universe multiverse' \
+    'deb https://mirrors.aliyun.com/ubuntu/ noble-backports main restricted universe multiverse' \
+    '# deb-src https://mirrors.aliyun.com/ubuntu/ noble-backports main restricted universe multiverse' \
     '' \
     '# 以下安全更新软件源为官方源配置' \
-    'deb http://security.ubuntu.com/ubuntu/ resolute-security main restricted universe multiverse' \
-    '# deb-src http://security.ubuntu.com/ubuntu/ resolute-security main restricted universe multiverse' \
+    'deb http://security.ubuntu.com/ubuntu/ noble-security main restricted universe multiverse' \
+    '# deb-src http://security.ubuntu.com/ubuntu/ noble-security main restricted universe multiverse' \
     '' \
     '# 预发布软件源，不建议启用' \
-    '# deb https://mirrors.aliyun.com/ubuntu/ resolute-proposed main restricted universe multiverse' \
-    '# # deb-src https://mirrors.aliyun.com/ubuntu/ resolute-proposed main restricted universe multiverse' \
+    '# deb https://mirrors.aliyun.com/ubuntu/ noble-proposed main restricted universe multiverse' \
+    '# # deb-src https://mirrors.aliyun.com/ubuntu/ noble-proposed main restricted universe multiverse' \
     > /etc/apt/sources.list && \
     # 更新软件包索引
     apt-get update && \
@@ -56,7 +56,6 @@ RUN printf '%s\n' \
 # -----------------------------------------------------------------------------
 # 第一步: 安装基础命令工具
 # 同时安装后续步骤所需的 gnupg / ca-certificates（添加第三方 apt 源必需）
-# 注: LinuxServer 底包可能预装了不兼容的高版本 python3-setuptools, 导致安装 pip 冲突，在此先尝试卸载
 # -----------------------------------------------------------------------------
 RUN apt-get update && apt-get install -y --no-install-recommends \
     # 网络诊断工具
