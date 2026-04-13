@@ -41,13 +41,16 @@ RUN printf '%s\n' \
     'deb http://security.ubuntu.com/ubuntu/ noble-security main restricted universe multiverse' \
     '# deb-src http://security.ubuntu.com/ubuntu/ noble-security main restricted universe multiverse' \
     '' \
-    '# 预发布软件源，不建议启用' \
-    '# deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ noble-proposed main restricted universe multiverse' \
-    '# # deb-src https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ noble-proposed main restricted universe multiverse' \
+    # 预发布软件源，不建议启用' \
+    # '# deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ noble-proposed main restricted universe multiverse' \
+    # '# # deb-src https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ noble-proposed main restricted universe multiverse' \
     > /etc/apt/sources.list && \
+    # 【架构修复方案：配置 Apt Pinning 安全降级高版本组件而不卸载依赖】
+    # 将游离的高版本 python3-setuptools/pkg-resources 强制定向到 noble 官方稳定版
+    printf "Package: python3-setuptools python3-pkg-resources\nPin: release n=noble*\nPin-Priority: 1001\n" > /etc/apt/preferences.d/99-downgrade-python && \
     # 更新软件包索引
     apt-get update && \
-    # 全量升级所有已安装包（dist-upgrade 可处理依赖关系变更的升级）
+    # 全量升级所有已安装包（触发自动降级修复）
     apt-get dist-upgrade -y && \
     # 清理缓存，减小镜像体积
     apt-get clean && \
@@ -58,9 +61,7 @@ RUN printf '%s\n' \
 # 同时安装后续步骤所需的 gnupg / ca-certificates（添加第三方 apt 源必需）
 # 注: LinuxServer 底包可能预装了不兼容的高版本 python3-setuptools, 导致安装 pip 冲突，在此先尝试卸载
 # -----------------------------------------------------------------------------
-RUN apt-get update && \
-    apt-get remove -y python3-setuptools && \
-    apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     # 网络诊断工具
     iputils-ping \
     # 网络接口管理工具 (ifconfig, netstat 等)
