@@ -56,8 +56,11 @@ RUN printf '%s\n' \
 # -----------------------------------------------------------------------------
 # 第一步: 安装基础命令工具
 # 同时安装后续步骤所需的 gnupg / ca-certificates（添加第三方 apt 源必需）
+# 注: LinuxServer 底包可能预装了不兼容的高版本 python3-setuptools, 导致安装 pip 冲突，在此先尝试卸载
 # -----------------------------------------------------------------------------
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update && \
+    apt-get remove -y python3-setuptools && \
+    apt-get install -y --no-install-recommends \
     # 网络诊断工具
     iputils-ping \
     # 网络接口管理工具 (ifconfig, netstat 等)
