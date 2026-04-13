@@ -26,32 +26,29 @@ FROM lscr.io/linuxserver/webtop:ubuntu-kde
 # 注意: 使用 printf 逐行写入，避免 heredoc 被 Dockerfile linter 误判
 # -----------------------------------------------------------------------------
 
-# 备份原始 sources.list 并替换为镜像源（Ubuntu 24.04 Noble）
+# 备份原始 sources.list 并替换为镜像源（Ubuntu Resolute Raccoon）
 RUN printf '%s\n' \
-    '# Ubuntu 软件镜像站 - Ubuntu 24.04 Noble' \
+    '# Ubuntu 软件镜像站 - Ubuntu Resolute Raccoon' \
     '# 默认注释了源码镜像以提高 apt update 速度，如有需要可自行取消注释' \
-    'deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ noble main restricted universe multiverse' \
-    '# deb-src https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ noble main restricted universe multiverse' \
-    'deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ noble-updates main restricted universe multiverse' \
-    '# deb-src https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ noble-updates main restricted universe multiverse' \
-    'deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ noble-backports main restricted universe multiverse' \
-    '# deb-src https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ noble-backports main restricted universe multiverse' \
+    'deb https://mirrors.aliyun.com/ubuntu/ resolute main restricted universe multiverse' \
+    '# deb-src https://mirrors.aliyun.com/ubuntu/ resolute main restricted universe multiverse' \
+    'deb https://mirrors.aliyun.com/ubuntu/ resolute-updates main restricted universe multiverse' \
+    '# deb-src https://mirrors.aliyun.com/ubuntu/ resolute-updates main restricted universe multiverse' \
+    'deb https://mirrors.aliyun.com/ubuntu/ resolute-backports main restricted universe multiverse' \
+    '# deb-src https://mirrors.aliyun.com/ubuntu/ resolute-backports main restricted universe multiverse' \
     '' \
     '# 以下安全更新软件源为官方源配置' \
-    'deb http://security.ubuntu.com/ubuntu/ noble-security main restricted universe multiverse' \
-    '# deb-src http://security.ubuntu.com/ubuntu/ noble-security main restricted universe multiverse' \
+    'deb http://security.ubuntu.com/ubuntu/ resolute-security main restricted universe multiverse' \
+    '# deb-src http://security.ubuntu.com/ubuntu/ resolute-security main restricted universe multiverse' \
     '' \
-    # 预发布软件源，不建议启用' \
-    # '# deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ noble-proposed main restricted universe multiverse' \
-    # '# # deb-src https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ noble-proposed main restricted universe multiverse' \
+    '# 预发布软件源，不建议启用' \
+    '# deb https://mirrors.aliyun.com/ubuntu/ resolute-proposed main restricted universe multiverse' \
+    '# # deb-src https://mirrors.aliyun.com/ubuntu/ resolute-proposed main restricted universe multiverse' \
     > /etc/apt/sources.list && \
-    # 【架构修复方案：配置 Apt Pinning 安全降级高版本组件而不卸载依赖】
-    # 将游离的高版本 python3-setuptools/pkg-resources 强制定向到 noble 官方稳定版
-    printf "Package: python3-setuptools python3-pkg-resources\nPin: release n=noble*\nPin-Priority: 1001\n" > /etc/apt/preferences.d/99-downgrade-python && \
     # 更新软件包索引
     apt-get update && \
-    # 全量升级所有已安装包（通过 --allow-downgrades 允许触发自动降级修复）
-    apt-get dist-upgrade -y --allow-downgrades && \
+    # 全量升级所有已安装包
+    apt-get dist-upgrade -y && \
     # 清理缓存，减小镜像体积
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
