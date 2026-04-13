@@ -181,7 +181,7 @@ RUN mkdir -p /etc/apt/keyrings && \
     apt-get update && \
     apt-get install -y --no-install-recommends antigravity && \
     # 安装 cockpit tools
-    wget -qO /tmp/cockpit-tools.deb https://github.com/jlcodes99/cockpit-tools/releases/download/v0.21.1/Cockpit.Tools_0.21.1_amd64.deb && \
+    wget -qO /tmp/cockpit-tools.deb https://github.com/jlcodes99/cockpit-tools/releases/download/v0.21.3/Cockpit.Tools_0.21.3_amd64.deb && \
     apt-get install -y /tmp/cockpit-tools.deb && \
     rm -f /tmp/cockpit-tools.deb && \
     apt-get clean && \
@@ -242,6 +242,45 @@ RUN mkdir -p /etc/s6-overlay/s6-rc.d/svc-deskclaw && \
     mkdir -p /etc/s6-overlay/s6-rc.d/user/contents.d && \
     touch /etc/s6-overlay/s6-rc.d/user/contents.d/svc-deskclaw
 
+# -----------------------------------------------------------------------------
+# 第十步: 安装 CodePilot
+# -----------------------------------------------------------------------------
+RUN wget -qO /tmp/CodePilot-amd64.deb https://github.com/op7418/CodePilot/releases/download/v0.49.0/CodePilot-0.49.0-amd64.deb && \
+    apt-get install -y /tmp/CodePilot-amd64.deb && \
+    rm -f /tmp/CodePilot-amd64.deb && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# -----------------------------------------------------------------------------
+# 第十一步: 安装 Claude Code (采用 Seed Template 模式支持 /config 持久化)
+# 痛点: Claude 的二进制和配置要求写在用户的 ~/.local 等相对目录内。
+# 如果直接在构建时使用 root 安装，abc 用户运行时将无权执行或自更新。
+# 如果在每次容器启动时重新下载，会阻塞启动阶段且无法离线。
+# 方案: 在构建阶段安装至 /opt/claude-seed, 通过 s6 启动脚本动态映射到 /config
+# -----------------------------------------------------------------------------
+RUN mkdir -p /opt/claude-seed /custom-cont-init.d && \
+    HOME=/opt/claude-seed bash -c "curl -fsSL https://claude.ai/install.sh | bash" && \
+    printf "#!/bin/bash\n\
+if [ ! -d /config/.local/share/claude ]; then\n\
+  echo '>>> [Seed Template] 首次初始化 Claude Code 到 /config ...'\n\
+  mkdir -p /config/.local/share /config/.local/bin\n\
+  cp -a /opt/claude-seed/.local/share/claude /config/.local/share/\n\
+  chown -R abc:abc /config/.local/share/claude\n\
+  # 重建指向真实持久化路径的软链接\n\
+  CLAUDE_VER=\$(ls /config/.local/share/claude/versions | head -n 1)\n\
+  ln -sf /config/.local/share/claude/versions/\$CLAUDE_VER/claude /config/.local/bin/claude\n\
+  chown -h abc:abc /config/.local/bin/claude\n\
+fi\n\
+# 确保终端包含 .local/bin (支持 bash/zsh)\n\
+for rc in /config/.bashrc /config/.zshrc; do\n\
+  if [ -f \$rc ] && ! grep -q '\.local/bin' \$rc 2>/dev/null; then\n\
+    echo 'export PATH=\"\$HOME/.local/bin:\$PATH\"' >> \$rc\n\
+  elif [ ! -f \$rc ]; then\n\
+    echo 'export PATH=\"\$HOME/.local/bin:\$PATH\"' > \$rc\n\
+    chown abc:abc \$rc\n\
+  fi\n\
+done\n" > /custom-cont-init.d/98-install-claude && \
+    chmod +x /custom-cont-init.d/98-install-claude
 # -----------------------------------------------------------------------------
 # 元数据标签
 # -----------------------------------------------------------------------------
