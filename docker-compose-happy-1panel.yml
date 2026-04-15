@@ -1,0 +1,30 @@
+services:
+  happy-server:
+    image: happy-server:latest
+    container_name: happy-server
+    environment:
+      - NODE_ENV=production
+      - PORT=3005
+      - HANDY_MASTER_SECRET=your-super-secret-key-change-me
+      - DATA_DIR=/data
+      - TZ=Asia/Shanghai
+    volumes:
+      - /data/happy/server:/data
+    ports:
+      - 3000:3005
+    restart: unless-stopped
+    networks:
+      - 1panel-network
+
+  happy-webapp:
+    image: happy-webapp:latest
+    container_name: happy-webapp
+    ports:
+      - 8080:80
+    restart: unless-stopped
+    networks:
+      - 1panel-network
+
+networks:
+  1panel-network:
+    external: true
