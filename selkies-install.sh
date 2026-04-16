@@ -24,7 +24,7 @@ export SELKIES_WEB="$OPT_DIR/selkies-web/selkies-dashboard"
 echo "[Phase 1] 底盘加固: 依赖环境夯实与守护程序包下发..."
 apt-get update
 # 核心依赖：Xorg虚拟环境，Pulse音轨，反向路由Nginx，Python底座构建包等
-apt-get install -y xserver-xorg-video-dummy pulseaudio nginx python3-pip curl jq dbus-x11 pkg-config libcairo2-dev libgirepository1.0-dev pciutils
+apt-get install -y xserver-xorg-video-dummy pulseaudio nginx python3-pip curl jq dbus-x11 pkg-config libcairo2-dev libgirepository1.0-dev pciutils apache2-utils
 
 echo "[Phase 2] 安全脱水: 破坏性系统瘦身与娱乐残留剥离..."
 # 锚定核心，防止雪崩
@@ -180,6 +180,9 @@ if [ ! -f /etc/nginx/ssl/vdi.crt ]; then
     -subj "/C=CN/ST=Shanghai/L=Shanghai/O=Zino/OU=VDI/CN=zino"
 fi
 
+# 创建网关凭证库
+htpasswd -bc /etc/nginx/.htpasswd zhangjun passw0rd
+
 cat > /etc/nginx/sites-available/selkies << 'EOF'
 server {
     listen 3000 ssl;
@@ -188,6 +191,10 @@ server {
     ssl_certificate /etc/nginx/ssl/vdi.crt;
     ssl_certificate_key /etc/nginx/ssl/vdi.key;
 
+    # 强制网关鉴权
+    auth_basic "Zino VDI Restricted Access";
+    auth_basic_user_file /etc/nginx/.htpasswd;
+    
     # 主网关指向 Web 前端骨架
     root /opt/selkies-web/selkies-dashboard;
     index index.html index.htm;
